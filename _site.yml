@@ -1,0 +1,9 @@
+name: "Fantasy MLS Dashboard"
+output_dir: "."
+navbar:
+  title: "Fantasy MLS Dashboard"
+  left:
+    - text: "Home"
+      href: index.html
+    - text: "About Me"
+      href: about.html
