@@ -340,19 +340,19 @@ Data %>% filter(Season == "Current") %>% group_by(Team,Against) %>% summarise(Go
 Row {.tabset .tabset-fade}
 ------------------------------------------
 
-### Team
+### Team {.no-mobile}
 
 ```{r}
 datatable(Team)
 ```
 
-### Player Stats
+### Player Stats {.no-mobile}
 
 ```{r}
 datatable(Player)
 ```
 
-### Player Probabilities
+### Player Probabilities {.no-mobile}
 
 ```{r}
 datatable(Player.Probabilities)
@@ -405,13 +405,13 @@ Row {.tabset .tabset-fade}
 ------------------------------------------
 
 
-### Team
+### Team {.no-mobile}
 
 ```{r}
 Data %>% filter(Season == "16/17 Season") %>% ungroup() %>% group_by(Team) %>% select(-ID, -Name, -Game, -Minutes, -Against, -Location, - Number, -Position, -scored, -brace, -hattrick, -Save.3, -Save.6, -pred.score, -pred.clean, -pred.assist, -pred.Save.3) %>% summarise_all(funs(average = mean)) %>% datatable()
 ```
 
-### Player Stats
+### Player Stats {.no-mobile}
 
 ```{r}
 Data %>% filter(Season == "16/17 Season") %>% group_by(Name) %>% select(-ID, -Name, -Game, -Minutes, -Against, -Location, - Number, -Position, -scored, -brace, -hattrick, -Save.3, -Save.6, -pred.score, -pred.clean, -pred.assist, -pred.Save.3) %>% summarise_all(funs(average = mean)) %>% datatable()
@@ -464,13 +464,13 @@ Row {.tabset .tabset-fade}
 ------------------------------------------
 
 
-### Team
+### Team {.no-mobile}
 
 ```{r}
 Data %>% filter(Season == "15/16 Season") %>% ungroup() %>% group_by(Team) %>% select(-ID, -Name, -Game, -Minutes, -Against, -Location, - Number, -Position, -scored, -brace, -hattrick, -Save.3, -Save.6, -pred.score, -pred.clean, -pred.assist, -pred.Save.3) %>% summarise_all(funs(average = mean)) %>% datatable()
 ```
 
-### Player Stats
+### Player Stats {.no-mobile}
 
 ```{r}
 Data %>% filter(Season == "15/16 Season") %>% group_by(Name) %>% select(-ID, -Name, -Game, -Minutes, -Against, -Location, - Number, -Position, -scored, -brace, -hattrick, -Save.3, -Save.6, -pred.score, -pred.clean, -pred.assist, -pred.Save.3) %>% summarise_all(funs(average = mean)) %>% datatable()
