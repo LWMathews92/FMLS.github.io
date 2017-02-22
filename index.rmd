@@ -15,7 +15,7 @@ require("tidyr")
 require("ggthemes")
 require("knitr")
 require(DT)
-Starter <- read.csv(paste(set.local,"DataPredicted.csv",sep = ""), stringsAsFactors = FALSE)
+Starter <- read.csv(paste(set.local,"DataPredicted.csv",sep = ""), stringsAsFactors = FALSE) %>% select(-X)
 Data <- Starter[,1:31]
 Predictions <- Starter %>% select(ID,Game,starts_with("L"),-Location)
 
@@ -46,6 +46,11 @@ Player.Probabilities <- Data %>% filter(Season == "Current") %>% group_by(Name) 
 
 Predicted 15
 ==========================================
+Row {data-height=200}
+------------------------------------------
+
+> Below are listed the players with the highest estimated point value for their respective positions. Estimated point value is calculated by multiplying the predicted probability of an event (such as scoring) by the point value of that event.
+
 Row {data-height=200}
 ------------------------------------------
 
@@ -181,6 +186,11 @@ valueBox(paste(point,"points"), caption = name, color = "#FF0000")
 
 Top 15
 ==========================================
+Row {data-height=200}
+------------------------------------------
+
+> The Top 15 represents the players with the highest total of what I have deemed "key" stats. Saves for Keepers, Clean Sheets for Defenders, Goals for the rest. Currently the totals represent the 16/17 season, but after GW1 will represent the current season.
+
 Row {data-height=200}
 ------------------------------------------
 
@@ -373,6 +383,23 @@ Data %>% filter(Name %in% Top_Keepers.1617$Name, Season == "16/17 Season") %>% u
 
 ```
 
+###Top Defenders
+
+```{r}
+Data %>% filter(Name %in% Top_Defenders.1617$Name, Season == "16/17 Season") %>% ungroup() %>% group_by(Name) %>% mutate(C.Cleans = cumsum(Clean.sheet)) %>% ggplot(aes(SeasonGame, C.Cleans, color = Name)) + geom_line()
+```
+
+###Top Midfielders
+
+```{r}
+Data %>% filter(Name %in% Top_Midfielders.1617$Name, Season == "16/17 Season") %>% ungroup() %>% group_by(Name) %>% mutate(C.Goals = cumsum(Goals)) %>% ggplot(aes(SeasonGame, C.Goals, color = Name)) + geom_line()
+```
+
+###Top Strikers
+
+```{r}
+Data %>% filter(Name %in% Top_Strikers.1617$Name, Season == "16/17 Season") %>% ungroup() %>% group_by(Name) %>% mutate(C.Goals = cumsum(Goals)) %>% ggplot(aes(SeasonGame, C.Goals, color = Name)) + geom_line()
+```
 
 Row {.tabset .tabset-fade}
 ------------------------------------------
@@ -415,6 +442,23 @@ Data %>% filter(Name %in% Top_Keepers.1516$Name, Season == "15/16 Season") %>% u
 
 ```
 
+###Top Defenders
+
+```{r}
+Data %>% filter(Name %in% Top_Defenders.1516$Name, Season == "15/16 Season") %>% ungroup() %>% group_by(Name) %>% mutate(C.Cleans = cumsum(Clean.sheet)) %>% ggplot(aes(SeasonGame, C.Cleans, color = Name)) + geom_line()
+```
+
+###Top Midfielders
+
+```{r}
+Data %>% filter(Name %in% Top_Midfielders.1516$Name, Season == "15/16 Season") %>% ungroup() %>% group_by(Name) %>% mutate(C.Goals = cumsum(Goals)) %>% ggplot(aes(SeasonGame, C.Goals, color = Name)) + geom_line()
+```
+
+###Top Strikers
+
+```{r}
+Data %>% filter(Name %in% Top_Strikers.1516$Name, Season == "15/16 Season") %>% ungroup() %>% group_by(Name) %>% mutate(C.Goals = cumsum(Goals)) %>% ggplot(aes(SeasonGame, C.Goals, color = Name)) + geom_line()
+```
 
 Row {.tabset .tabset-fade}
 ------------------------------------------
@@ -433,9 +477,20 @@ Data %>% filter(Season == "15/16 Season") %>% group_by(Name) %>% select(-ID, -Na
 ```
 
 
-Developer Tools
-==========================================
+Additional Materials, Ongoing Analysis, and the like
+=====================================================
+
+> Here I will be posting the results of various investigations that I make into the data, when I have time. Presently, the algorithms are only considering the last gameweek and cumulative statistics to determine probabilities. This will change over the coming days. Additionally, I have not yet even begun to develop solid KPIs to be used as variables in analysis so I expect model accuracy to improve modestly as time goes on. At the moment, all models predict just slightly (0.1-1%) better than the naive rule with models considering more history performing minutely better.
 
 ```{r}
 #timer <- read.csv(paste(set.local,"timer.csv", sep = ""))
 ```
+
+About the Author
+=====================================================
+
+Lee W Mathews is an Alexandria and Baton Rouge native of Louisiana. While in Alexandria he attended Our Lady of Prompt Succor school and Holy Savior Menard High School. He then moved down to Baton Rouge and earned two degrees from Louisiana State University. His undergraduate degree is in Biology; his favorite subjects the studies Physiology and Immunology. Lee changed directions for graduate school and attained a Master's in Analytics. He now works as an Analytical Consultant at Cognizant.
+
+> The information provided here is my own. I make no claim to its efficacy, accuracy, objectivity, or root in reality. Whatever you do with these pages is on you; I stake none of my professional ability on this site. It is a hobby, and that alone.
+
+> Viva Christo Rey!
