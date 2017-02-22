@@ -1,112 +1,441 @@
 ---
-title: "New Website"
-
+title: "Fantasy MLS Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+  
 ---
-`r date()`
 
-```{r Packages, echo=FALSE, results='hide', message=FALSE}
+```{r setup, include=FALSE}
+set.local <- "C:/Users/Lee/OneDrive/FMLS folder/"
+library(flexdashboard)
 require("ggplot2")
 require("dplyr")
 require("tidyr")
 require("ggthemes")
 require("knitr")
+require(DT)
+Starter <- read.csv(paste(set.local,"DataPredicted.csv",sep = ""), stringsAsFactors = FALSE)
+Data <- Starter[,1:31]
+Predictions <- Starter %>% select(ID,Game,starts_with("L"),-Location)
+
+if(nrow(Data %>% filter(Season == "Current")) == 0){Data[Data$Season == "16/17 Season","Season"] <- "Current"}
+
+Data$pred.score <- rowMeans(Predictions %>% select(contains("score")) )
+Data$pred.assist <- rowMeans(Predictions %>% select(contains("assist")) )
+Data$pred.clean <- rowMeans(Predictions %>% select(contains("clean")) )
+Data$pred.Save.3 <- rowMeans(Predictions %>% select(contains("S3")) )
+
+Top_Keepers <- Data %>% filter(Position == "G", Season == "Current") %>% group_by(Name) %>% select(Saves,Clean.sheet) %>% summarise_all(sum) %>% arrange(Clean.sheet, Saves) %>% top_n(2,Saves)
+Top_Defenders <- Data %>% filter(Position == "D", Season == "Current") %>% group_by(Name) %>% select(Goals,Assists,Clean.sheet) %>% summarise_all(sum) %>% arrange(Goals, Clean.sheet, Assists) %>% top_n(5,Clean.sheet)
+Top_Midfielders <- Data %>% filter(Position == "M", Season == "Current") %>% group_by(Name) %>% select(Goals,Assists,Clean.sheet) %>% summarise_all(sum) %>% arrange(Goals,Assists, Clean.sheet) %>% top_n(5,Goals)
+Top_Strikers <- Data %>% filter(Position == "F", Season == "Current") %>% group_by(Name) %>% select(Goals,Assists) %>% summarise_all(sum) %>% arrange(Goals,Assists) %>% top_n(5, Goals)
+
+Pred_Keepers <- Data %>% filter(Position == "G") %>% group_by(Name) %>% arrange(Game) %>% summarise_all(funs(last)) %>% mutate(Pred.points = 6*pred.clean + 1*pred.Save.3) %>% ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>%  top_n(2,Pred.points)
+Pred_Defenders <- Data %>% filter(Position == "D") %>% group_by(Name) %>% arrange(Game) %>% summarise_all(funs(last))  %>% mutate(Pred.points = 6*pred.clean + 6*pred.score + 3*pred.assist) %>% ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>%  top_n(5,Pred.points)
+Pred_Midfielders <- Data %>% filter(Position == "M") %>% group_by(Name) %>% arrange(Game) %>% summarise_all(funs(last)) %>% mutate(Pred.points = 3*pred.clean + 5*pred.score + 3*pred.assist) %>% ungroup()  %>% mutate(Pred.points = round(Pred.points,2)) %>%  top_n(5,Pred.points)
+Pred_Strikers <- Data %>% filter(Position == "F") %>% group_by(Name) %>% arrange(Game) %>% summarise_all(funs(last)) %>% mutate(Pred.points =  4*pred.score + 3*pred.assist) %>% ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>%  top_n(3,Pred.points)
+
+
+Team <- Data %>% filter(Season == "Current") %>% ungroup() %>% group_by(Team) %>% select(-ID, -Name, -Game, -Minutes, -Against, -Location, - Number, -Position, -scored, -brace, -hattrick, -Save.3, -Save.6, -pred.score, -pred.clean, -pred.assist, -pred.Save.3) %>% summarise_if(is.numeric,funs(Average = mean,Total = sum))
+
+Player <- Data %>% filter(Season == "Current") %>% ungroup() %>% group_by(Name) %>% select(-ID,-Number ,-Game, -Against, -Location, -scored, -brace, -hattrick, -Save.3, -Save.6, -pred.score, -pred.clean, -pred.assist, -pred.Save.3) %>% summarise_if(is.numeric,funs(Average = mean,Total = sum))
+
+Player.Probabilities <- Data %>% filter(Season == "Current") %>% group_by(Name) %>% arrange(Game) %>% summarise_all(funs(last)) %>% select(Name,Team, Position, pred.score, pred.clean, pred.assist, pred.Save.3)
 ```
 
-```{r Data, echo= FALSE, warning=FALSE, results='hide'}
-FPLOVRD <- read.csv("http://fantasyoverlord.com/FPL/DataWithForecasts")
-T.P.N <- FPLOVRD %>% mutate(Fullname = paste(FirstName, " " ,Surname), Cost.M = Cost / 1000000, Value = AveragePoints/ Cost.M, Total.Value = TotalPoints/Cost.M) %>% select(Pos = PositionsList, Team,Fullname,Cost.M, Saves,Assists,CleanSheets,GoalsScored,GoalsConceded, PointsLastRound, SelectedByPercent, Transfers = TransfersIn - TransfersOut, RoundTrans = TransfersInRound - TransfersOutRound, Value, Total.Value, TotalPoints, AveragePoints,Form) 
-Forecast <- FPLOVRD %>% select(contains("GW"))
-Fiveweek <- Forecast[,1:5]
-Fiveweek.value <- Fiveweek / T.P.N$Cost.M
-names(Fiveweek.value) <- paste(names(Fiveweek.value),".Value")
-FPLData <- T.P.N %>% bind_cols(Fiveweek) %>% bind_cols(Fiveweek.value)
-```
-#{.tabset .tabset-fade .tabset-pills}
-## Best Team by Total Points
+Predicted 15
+==========================================
+Row {data-height=200}
+------------------------------------------
 
-```{r Data Filter.TP, results="hide", echo=FALSE}
-GKs   <- FPLData %>% filter(Pos == "GLK") %>% top_n(2,TotalPoints)
-Defs  <- FPLData %>% filter(Pos == "DEF") %>% top_n(5,TotalPoints)
-Mids  <- FPLData %>% filter(Pos == "MID") %>% top_n(5,TotalPoints)
-Fwds  <- FPLData %>% filter(Pos == "FWD") %>% top_n(3,TotalPoints)
-Best.Total <- GKs %>% bind_rows(Defs) %>% bind_rows(Mids) %>% bind_rows(Fwds)
-```
-```{r Plot.1, echo=FALSE}
-Best.Total %>% ggplot(aes(Fullname,TotalPoints))+ geom_bar(stat = "identity",aes(fill = Pos)) + coord_flip() + theme_economist() + scale_fill_tableau(palette = "tableau10")
+### Keeper 1
+
+```{r}
+name <- Pred_Keepers[1, "Name"]
+point <- Pred_Keepers[1, "Pred.points"]
+valueBox(paste(point,"points"), caption = name, color = "#008000")
 ```
 
-## Team with the Highest Total Value (Points/Cost)
+### Keeper 2
 
-```{r, results="hide", echo=FALSE}
-GKs   <- FPLData %>% filter(Pos == "GLK") %>% top_n(2,Total.Value)
-Defs  <- FPLData %>% filter(Pos == "DEF") %>% top_n(5,Total.Value)
-Mids  <- FPLData %>% filter(Pos == "MID") %>% top_n(5,Total.Value)
-Fwds  <- FPLData %>% filter(Pos == "FWD") %>% top_n(3,Total.Value)
-Best.Value <- GKs %>% bind_rows(Defs) %>% bind_rows(Mids) %>% bind_rows(Fwds)
-```
-```{r, echo=FALSE}
-Best.Value %>% ggplot(aes(Fullname,Total.Value))+ geom_bar(stat = "identity",aes(fill = Pos)) + coord_flip() + theme_economist() + scale_fill_tableau(palette = "tableau10")
+```{r}
+name <- Pred_Keepers[2, "Name"]
+point <- Pred_Keepers[2, "Pred.points"]
+valueBox(paste(point,"points"), caption = name, color = "#008000")
 ```
 
-## In Form Differential Players (Owned by <10%).
+Row {data-height=200}
+-----------------------------------------
 
-```{r, results="hide", echo=FALSE}
-GKs   <- FPLData %>% filter(Pos == "GLK",SelectedByPercent < 10) %>% top_n(2,Form)
-Defs  <- FPLData %>% filter(Pos == "DEF",SelectedByPercent < 10) %>% top_n(5,Form)
-Mids  <- FPLData %>% filter(Pos == "MID",SelectedByPercent < 10) %>% top_n(5,Form)
-Fwds  <- FPLData %>% filter(Pos == "FWD",SelectedByPercent < 10) %>% top_n(3,Form)
-Best.DiffForm <- GKs %>% bind_rows(Defs) %>% bind_rows(Mids) %>% bind_rows(Fwds)
-```
-```{r, echo=FALSE}
-Best.DiffForm %>% ggplot(aes(Fullname,Form))+ geom_bar(stat = "identity",aes(fill = Pos)) + coord_flip() + theme_economist() + scale_fill_tableau(palette = "tableau10")
+### Defender 1
+
+```{r}
+name <- Pred_Defenders[1, "Name"]
+point <- Pred_Defenders[1, "Pred.points"]
+valueBox(paste(point,"points"), caption = name, color = "#0000FF")
 ```
 
-## Predicted Week "Heat" by Fantasy Overlord
+### Defender 2
 
-```{r,echo=FALSE,results="hide"}
-Best <- Best.Total %>% bind_rows(Best.Value) %>% bind_rows(Best.DiffForm) %>% distinct()
-Best.trans <- Best %>% gather("Week", "Forecast",19:23) %>% mutate(Week = extract_numeric(Week))
-Best.trans.f <- Best.trans %>% filter(Pos == "FWD")
-Best.trans.m <- Best.trans %>% filter(Pos == "MID") 
-Best.trans.d <- Best.trans %>% filter(Pos == "DEF")
-Best.trans.g <- Best.trans %>% filter(Pos == "GLK")
+```{r}
+name <- Pred_Defenders[2, "Name"]
+point <- Pred_Defenders[2, "Pred.points"]
+valueBox(paste(point,"points"), caption = name, color = "#0000FF")
 ```
 
-```{r, echo=FALSE}
-Best.trans.f %>% ggplot(aes(Fullname,Week)) + geom_raster(aes(fill=Forecast)) + coord_flip()+ theme_economist() + scale_fill_gradient2(low = "blue",mid = "blue",midpoint = 7,high = "red")
-Best.trans.m %>% ggplot(aes(Fullname,Week)) + geom_raster(aes(fill=Forecast)) + coord_flip()+ theme_economist() + scale_fill_gradient2(low = "blue",mid = "blue",midpoint = 7,high = "red")
-Best.trans.d %>% ggplot(aes(Fullname,Week)) + geom_raster(aes(fill=Forecast)) + coord_flip()+ theme_economist() + scale_fill_gradient2(low = "blue",mid = "blue",midpoint = 7,high = "red")
-Best.trans.g %>% ggplot(aes(Fullname,Week)) + geom_raster(aes(fill=Forecast)) + coord_flip()+ theme_economist() + scale_fill_gradient2(low = "blue",mid = "blue",midpoint = 7,high = "red")
-kable(Best)
+### Defender 3
+
+```{r}
+name <- Pred_Defenders[3, "Name"]
+point <- Pred_Defenders[3, "Pred.points"]
+valueBox(paste(point,"points"), caption = name, color = "#0000FF")
 ```
 
-## Team with the Best Predicted Value Next Week (Points/Cost):
+### Defender 4
 
-```{r, echo=FALSE}
-GW <- FPLData %>% select(contains(".Value"))
-GWname <- as.name(names(GW)[2])
-GKs   <- FPLData %>% filter(Pos == "GLK") %>% top_n(2,GWname)
-Defs  <- FPLData %>% filter(Pos == "DEF") %>% top_n(5,GWname)
-Mids  <- FPLData %>% filter(Pos == "MID",SelectedByPercent < 10) %>% top_n(5,GWname)
-Fwds  <- FPLData %>% filter(Pos == "FWD",SelectedByPercent < 10) %>% top_n(3,GWname)
-Best.Nextweek <- GKs %>% bind_rows(Defs) %>% bind_rows(Mids) %>% bind_rows(Fwds)
-kable(Best.Nextweek)
+```{r}
+name <- Pred_Defenders[4, "Name"]
+point <- Pred_Defenders[4, "Pred.points"]
+valueBox(paste(point,"points"), caption = name, color = "#0000FF")
 ```
 
->The total cost of this team is `r sum(Best.Nextweek$Cost.M)`
+### Defender 5
 
-## Team with the Most Predicted Points Next Week
-
-```{r, echo=FALSE}
-GW <- FPLData %>% select(contains("GW"))
-GWname <- as.name(names(GW)[1])
-GKs   <- FPLData %>% filter(Pos == "GLK") %>% top_n(2,GWname)
-Defs  <- FPLData %>% filter(Pos == "DEF") %>% top_n(5,GWname)
-Mids  <- FPLData %>% filter(Pos == "MID",SelectedByPercent < 10) %>% top_n(5,GWname)
-Fwds  <- FPLData %>% filter(Pos == "FWD",SelectedByPercent < 10) %>% top_n(3,GWname)
-Best.Nextweek <- GKs %>% bind_rows(Defs) %>% bind_rows(Mids) %>% bind_rows(Fwds)
-kable(Best.Nextweek)
+```{r}
+name <- Pred_Defenders[5, "Name"]
+point <- Pred_Defenders[5, "Pred.points"]
+valueBox(paste(point,"points"), caption = name, color = "#0000FF")
 ```
 
->The total cost of this team is `r sum(Best.Nextweek$Cost.M)`
+Row {data-height=200}
+-----------------------------------------
 
+### Midfielder 1
+
+```{r}
+name <- Pred_Midfielders[1, "Name"]
+point <- Pred_Midfielders[1, "Pred.points"]
+valueBox(paste(point,"points"), caption = name, color = "#e6e600")
+```
+
+### Midfielder 2
+
+```{r}
+name <- Pred_Midfielders[2, "Name"]
+point <- Pred_Midfielders[2, "Pred.points"]
+valueBox(paste(point,"points"), caption = name, color = "#e6e600")
+```
+
+### Midfielder 3
+
+```{r}
+name <- Pred_Midfielders[3, "Name"]
+point <- Pred_Midfielders[3, "Pred.points"]
+valueBox(paste(point,"points"), caption = name, color = "#e6e600")
+```
+
+### Midfielder 4
+
+```{r}
+name <- Pred_Midfielders[4, "Name"]
+point <- Pred_Midfielders[4, "Pred.points"]
+valueBox(paste(point,"points"), caption = name, color = "#e6e600")
+```
+
+### Midfielder 5
+
+```{r}
+name <- Pred_Midfielders[5, "Name"]
+point <- Pred_Midfielders[5, "Pred.points"]
+valueBox(paste(point,"points"), caption = name, color = "#e6e600")
+```
+
+Row {data-height=200}
+-----------------------------------------
+
+### Striker 1
+
+```{r}
+name <- Pred_Strikers[1, "Name"]
+point <- Pred_Strikers[1, "Pred.points"]
+valueBox(paste(point,"points"), caption = name, color = "#FF0000")
+```
+
+### Striker 2
+
+```{r}
+name <- Pred_Strikers[2, "Name"]
+point <- Pred_Strikers[2, "Pred.points"]
+valueBox(paste(point,"points"), caption = name, color = "#FF0000")
+```
+
+### Striker 3
+
+```{r}
+name <- Pred_Strikers[3, "Name"]
+point <- Pred_Strikers[3, "Pred.points"]
+valueBox(paste(point,"points"), caption = name, color = "#FF0000")
+```
+
+
+Top 15
+==========================================
+Row {data-height=200}
+------------------------------------------
+
+### Keeper 1
+
+```{r}
+name <- Top_Keepers[1, "Name"]
+point <- Top_Keepers[1, "Saves"]
+valueBox(paste(point,"saves"), caption = name, color = "#008000")
+```
+
+### Keeper 2
+
+```{r}
+name <- Top_Keepers[2, "Name"]
+point <- Top_Keepers[2, "Saves"]
+valueBox(paste(point,"saves"), caption = name, color = "#008000")
+```
+
+Row {data-height=200}
+-----------------------------------------
+
+### Defender 1
+
+```{r}
+name <- Top_Defenders[1, "Name"]
+point <- Top_Defenders[1, "Clean.sheet"]
+valueBox(paste(point,"clean"), caption = name, color = "#0000FF")
+```
+
+### Defender 2
+
+```{r}
+name <- Top_Defenders[2, "Name"]
+point <- Top_Defenders[2, "Clean.sheet"]
+valueBox(paste(point,"clean"), caption = name, color = "#0000FF")
+```
+
+### Defender 3
+
+```{r}
+name <- Top_Defenders[3, "Name"]
+point <- Top_Defenders[3, "Clean.sheet"]
+valueBox(paste(point,"clean"), caption = name, color = "#0000FF")
+```
+
+### Defender 4
+
+```{r}
+name <- Top_Defenders[4, "Name"]
+point <- Top_Defenders[4, "Clean.sheet"]
+valueBox(paste(point,"clean"), caption = name, color = "#0000FF")
+```
+
+### Defender 5
+
+```{r}
+name <- Top_Defenders[5, "Name"]
+point <- Top_Defenders[5, "Clean.sheet"]
+valueBox(paste(point,"clean"), caption = name, color = "#0000FF")
+```
+
+Row {data-height=200}
+-----------------------------------------
+
+### Midfielder 1
+
+```{r}
+name <- Top_Midfielders[1, "Name"]
+point <- Top_Midfielders[1, "Goals"]
+valueBox(paste(point,"goals"), caption = name, color = "#e6e600")
+```
+
+### Midfielder 2
+
+```{r}
+name <- Top_Midfielders[2, "Name"]
+point <- Top_Midfielders[2, "Goals"]
+valueBox(paste(point,"goals"), caption = name, color = "#e6e600")
+```
+
+### Midfielder 3
+
+```{r}
+name <- Top_Midfielders[3, "Name"]
+point <- Top_Midfielders[3, "Goals"]
+valueBox(paste(point,"goals"), caption = name, color = "#e6e600")
+```
+
+### Midfielder 4
+
+```{r}
+name <- Top_Midfielders[4, "Name"]
+point <- Top_Midfielders[4, "Goals"]
+valueBox(paste(point,"goals"), caption = name, color = "#e6e600")
+```
+
+### Midfielder 5
+
+```{r}
+name <- Top_Midfielders[5, "Name"]
+point <- Top_Midfielders[5, "Goals"]
+valueBox(paste(point,"goals"), caption = name, color = "#e6e600")
+```
+
+Row {data-height=200}
+-----------------------------------------
+
+### Striker 1
+
+```{r}
+name <- Top_Strikers[1, "Name"]
+point <- Top_Strikers[1, "Goals"]
+valueBox(paste(point,"goals"), caption = name, color = "#FF0000")
+```
+
+### Striker 2
+
+```{r}
+name <- Top_Strikers[2, "Name"]
+point <- Top_Strikers[2, "Goals"]
+valueBox(paste(point,"goals"), caption = name, color = "#FF0000")
+```
+
+### Striker 3
+
+```{r}
+name <- Top_Strikers[3, "Name"]
+point <- Top_Strikers[3, "Goals"]
+valueBox(paste(point,"goals"), caption = name, color = "#FF0000")
+```
+
+Teams
+==========================================
+
+Row {.tabset .tabset-fade}
+------------------------------------------
+
+### Head to Head Goals/Goals_Allowed
+
+```{r}
+Data %>% filter(Season == "Current") %>% group_by(Team,Against) %>% summarise(Goals = sum(Goals)) %>% ggplot(aes(Team, Against)) + geom_tile(aes(fill = Goals),width = 0.9, height = 0.9) + geom_text(aes(label = Goals), colour = "White") + theme_tufte(base_size = 9)  + labs(x = "Goals Scored", y = "Goals Allowed")  + scale_y_discrete(expand = c(0, 0)) +  scale_fill_gradient(low = "Blue",high = "Orange") + theme(legend.position="none") 
+```
+
+
+
+Row {.tabset .tabset-fade}
+------------------------------------------
+
+### Team
+
+```{r}
+datatable(Team)
+```
+
+### Player Stats
+
+```{r}
+datatable(Player)
+```
+
+### Player Probabilities
+
+```{r}
+datatable(Player.Probabilities)
+```
+
+
+Season 16/17
+==========================================
+
+Row {.tabset .tabset-fade}
+------------------------------------------
+
+### Head to Head Goals/Goals_Allowed
+
+```{r}
+Data %>% filter(Season == "16/17 Season") %>% group_by(Team,Against) %>% summarise(Goals = sum(Goals)) %>% ggplot(aes(Team, Against)) + geom_tile(aes(fill = Goals),width = 0.9, height = 0.9) + geom_text(aes(label = Goals), colour = "White") + theme_tufte(base_size = 9)  + labs(x = "Goals Scored", y = "Goals Allowed")  + scale_y_discrete(expand = c(0, 0)) +  scale_fill_gradient(low = "Black",high = "Red") + theme(legend.position="none") 
+```
+
+### Top Keepers
+
+```{r}
+Top_Keepers.1617 <- Data %>% filter(Position == "G", Season == "16/17 Season") %>% group_by(Name) %>% select(Saves,Clean.sheet) %>% summarise_all(sum) %>% arrange(Clean.sheet, Saves) %>% top_n(2,Saves) %>% select(Name)
+Top_Defenders.1617 <- Data %>% filter(Position == "D", Season == "16/17 Season") %>% group_by(Name) %>% select(Goals,Assists,Clean.sheet) %>% summarise_all(sum) %>% arrange(Goals, Clean.sheet, Assists) %>% top_n(5,Clean.sheet) %>% select(Name)
+Top_Midfielders.1617 <- Data %>% filter(Position == "M", Season == "16/17 Season") %>% group_by(Name) %>% select(Goals,Assists,Clean.sheet) %>% summarise_all(sum) %>% arrange(Goals,Assists, Clean.sheet) %>% top_n(5,Goals) %>% select(Name)
+Top_Strikers.1617 <- Data %>% filter(Position == "F", Season == "16/17 Season") %>% group_by(Name) %>% select(Goals,Assists) %>% summarise_all(sum) %>% arrange(Goals,Assists) %>% top_n(5, Goals) %>% select(Name)
+
+Data %>% filter(Name %in% Top_Keepers.1617$Name, Season == "16/17 Season") %>% ungroup() %>% group_by(Name) %>% mutate(C.Saves = cumsum(Saves)) %>% ggplot(aes(SeasonGame, C.Saves, color = Name)) + geom_line()
+
+```
+
+
+Row {.tabset .tabset-fade}
+------------------------------------------
+
+
+### Team
+
+```{r}
+Data %>% filter(Season == "16/17 Season") %>% ungroup() %>% group_by(Team) %>% select(-ID, -Name, -Game, -Minutes, -Against, -Location, - Number, -Position, -scored, -brace, -hattrick, -Save.3, -Save.6, -pred.score, -pred.clean, -pred.assist, -pred.Save.3) %>% summarise_all(funs(average = mean)) %>% datatable()
+```
+
+### Player Stats
+
+```{r}
+Data %>% filter(Season == "16/17 Season") %>% group_by(Name) %>% select(-ID, -Name, -Game, -Minutes, -Against, -Location, - Number, -Position, -scored, -brace, -hattrick, -Save.3, -Save.6, -pred.score, -pred.clean, -pred.assist, -pred.Save.3) %>% summarise_all(funs(average = mean)) %>% datatable()
+```
+
+Season 15/16
+==========================================
+
+Row {.tabset .tabset-fade}
+------------------------------------------
+
+
+### Head to Head Goals/Goals_Allowed
+
+```{r}
+Data %>% filter(Season == "15/16 Season") %>% group_by(Team,Against) %>% summarise(Goals = sum(Goals)) %>% ggplot(aes(Team, Against)) + geom_tile(aes(fill = Goals),width = 0.9, height = 0.9) + geom_text(aes(label = Goals), colour = "White") + theme_tufte(base_size = 9)  + labs(x = "Goals Scored", y = "Goals Allowed")  + scale_y_discrete(expand = c(0, 0)) +  scale_fill_gradient(low = "Black",high = "Red") + theme(legend.position="none") 
+```
+
+### Top Keepers
+
+```{r}
+Top_Keepers.1516 <- Data %>% filter(Position == "G", Season == "15/16 Season") %>% group_by(Name) %>% select(Saves,Clean.sheet) %>% summarise_all(sum) %>% arrange(Clean.sheet, Saves) %>% top_n(2,Saves) %>% select(Name)
+Top_Defenders.1516 <- Data %>% filter(Position == "D", Season == "15/16 Season") %>% group_by(Name) %>% select(Goals,Assists,Clean.sheet) %>% summarise_all(sum) %>% arrange(Goals, Clean.sheet, Assists) %>% top_n(5,Clean.sheet) %>% select(Name)
+Top_Midfielders.1516 <- Data %>% filter(Position == "M", Season == "15/16 Season") %>% group_by(Name) %>% select(Goals,Assists,Clean.sheet) %>% summarise_all(sum) %>% arrange(Goals,Assists, Clean.sheet) %>% top_n(5,Goals) %>% select(Name)
+Top_Strikers.1516 <- Data %>% filter(Position == "F", Season == "15/16 Season") %>% group_by(Name) %>% select(Goals,Assists) %>% summarise_all(sum) %>% arrange(Goals,Assists) %>% top_n(5, Goals) %>% select(Name)
+
+Data %>% filter(Name %in% Top_Keepers.1516$Name, Season == "15/16 Season") %>% ungroup() %>% group_by(Name) %>% mutate(C.Saves = cumsum(Saves)) %>% ggplot(aes(SeasonGame, C.Saves, color = Name)) + geom_line()
+
+```
+
+
+Row {.tabset .tabset-fade}
+------------------------------------------
+
+
+### Team
+
+```{r}
+Data %>% filter(Season == "15/16 Season") %>% ungroup() %>% group_by(Team) %>% select(-ID, -Name, -Game, -Minutes, -Against, -Location, - Number, -Position, -scored, -brace, -hattrick, -Save.3, -Save.6, -pred.score, -pred.clean, -pred.assist, -pred.Save.3) %>% summarise_all(funs(average = mean)) %>% datatable()
+```
+
+### Player Stats
+
+```{r}
+Data %>% filter(Season == "15/16 Season") %>% group_by(Name) %>% select(-ID, -Name, -Game, -Minutes, -Against, -Location, - Number, -Position, -scored, -brace, -hattrick, -Save.3, -Save.6, -pred.score, -pred.clean, -pred.assist, -pred.Save.3) %>% summarise_all(funs(average = mean)) %>% datatable()
+```
+
+
+Developer Tools
+==========================================
+
+```{r}
+#timer <- read.csv(paste(set.local,"timer.csv", sep = ""))
+```
