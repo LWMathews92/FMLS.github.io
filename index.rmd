@@ -20,11 +20,11 @@ Data <- Starter[,1:32]
 Predictions <- Starter %>% select(ID,Game,starts_with("L"),-Location)
 
 if(nrow(Data %>% filter(Season == "Current")) == 0){Data[Data$Season == "16/17 Season","Season"] <- "Current"}
-
-Data$pred.score <- rowMeans(Predictions %>% select(contains("score")) )
-Data$pred.assist <- rowMeans(Predictions %>% select(contains("assist")) )
-Data$pred.clean <- rowMeans(Predictions %>% select(contains("clean")) )
-Data$pred.Save.3 <- rowMeans(Predictions %>% select(contains("S3")) )
+Data$Points <- Starter$Points
+Data$pred.score <- rowMeans(Predictions %>% select(contains("score")), na.rm = TRUE )
+Data$pred.assist <- rowMeans(Predictions %>% select(contains("assist")), na.rm = TRUE  )
+Data$pred.clean <- rowMeans(Predictions %>% select(contains("clean")), na.rm = TRUE  )
+Data$pred.Save.3 <- rowMeans(Predictions %>% select(contains("S3")), na.rm = TRUE  )
 Data <- Data %>% group_by(ID) %>% mutate(Pred.points = ifelse(Position == "G",
                                              sum(2,pred.score * 6,pred.assist * 3,pred.clean * 5,pred.Save.3 * 1, na.rm = TRUE),
                                       ifelse(Position == "D",
@@ -35,16 +35,29 @@ Data <- Data %>% group_by(ID) %>% mutate(Pred.points = ifelse(Position == "G",
                                              sum(2,pred.score * 5,pred.assist * 3, na.rm = TRUE),NA
                                              ))))) %>% ungroup()
 
-Top_Keepers <- Data %>% filter(Position == "G", Season == "Current") %>% group_by(Name) %>% select(Saves,Clean.sheet) %>% summarise_all(sum) %>% arrange(Clean.sheet, Saves) %>% top_n(2,Saves)
-Top_Defenders <- Data %>% filter(Position == "D", Season == "Current") %>% group_by(Name) %>% select(Goals,Assists,Clean.sheet) %>% summarise_all(sum) %>% arrange(Goals, Clean.sheet, Assists) %>% top_n(5,Clean.sheet)
-Top_Midfielders <- Data %>% filter(Position == "M", Season == "Current") %>% group_by(Name) %>% select(Goals,Assists,Clean.sheet) %>% summarise_all(sum) %>% arrange(Goals,Assists, Clean.sheet) %>% top_n(5,Goals)
-Top_Strikers <- Data %>% filter(Position == "F", Season == "Current") %>% group_by(Name) %>% select(Goals,Assists) %>% summarise_all(sum) %>% arrange(Goals,Assists) %>% top_n(5, Goals)
+Top_Keepers <- Data %>% filter(Position == "G", Season == "Current") %>% group_by(Position,Name) %>%  summarise_if(is.numeric,sum) %>% arrange(Points) %>% top_n(2,Points)
+Top_Defenders <- Data %>% filter(Position == "D", Season == "Current") %>% group_by(Position,Name) %>%  summarise_if(is.numeric,sum) %>% arrange(Points) %>% top_n(5,Points)
+Top_Midfielders <- Data %>% filter(Position == "M", Season == "Current") %>% group_by(Position,Name) %>%  summarise_if(is.numeric,sum) %>% arrange(Points) %>% top_n(5,Points)
+Top_Strikers <- Data %>% filter(Position == "F", Season == "Current") %>% group_by(Position,Name) %>%  summarise_if(is.numeric,sum) %>% arrange(Points) %>% top_n(3,Points)
 
-Pred_Keepers <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "G", Season == "Current") %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>%  top_n(2,Pred.points)
-Pred_Defenders <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "D", Season == "Current")  %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>%  top_n(5,Pred.points)
-Pred_Midfielders <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "M", Season == "Current")  %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>%  top_n(5,Pred.points)
-Pred_Strikers <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "F", Season == "Current")  %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>%  top_n(3,Pred.points)
+Top <- rbind(Top_Keepers,Top_Defenders,Top_Midfielders,Top_Strikers)
 
+Pred_Keepers <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "G", Season == "Current") %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>% arrange(Pred.points) %>%  top_n(2,Pred.points)
+Pred_Defenders <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "D", Season == "Current")  %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>% arrange(Pred.points) %>%  top_n(5,Pred.points)
+Pred_Midfielders <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "M", Season == "Current")  %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>% arrange(Pred.points) %>%  top_n(5,Pred.points)
+Pred_Strikers <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "F", Season == "Current")  %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>% arrange(Pred.points) %>%  top_n(3,Pred.points)
+
+Pred <- rbind(Pred_Keepers,Pred_Defenders,Pred_Midfielders,Pred_Strikers)
+
+#remove later
+Data <- Data %>% group_by(Season,Name) %>% arrange(Game) %>% mutate(cum.Points = cumsum(Points), cum.Minutes = cumsum(Minutes)) %>% ungroup() %>% group_by(ID) %>% mutate(PP90 = round(ifelse(cum.Minutes > 90,cum.Points / cum.Minutes * 90,0),0))
+
+PP90_Keepers <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "G", Season == "Current") %>%  ungroup() %>% mutate(PP90 = round(PP90,2)) %>% arrange(PP90) %>%  top_n(2,PP90) %>%  top_n(2,cum.Points)
+PP90_Defenders <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "D", Season == "Current")  %>%  ungroup() %>% mutate(PP90 = round(PP90,2)) %>% arrange(PP90) %>%  top_n(5,PP90) %>%  top_n(5,cum.Points)
+PP90_Midfielders <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "M", Season == "Current")  %>%  ungroup() %>% mutate(PP90 = round(PP90,2)) %>% arrange(PP90) %>%  top_n(5,PP90) %>%  top_n(5,cum.Points)
+PP90_Strikers <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "F", Season == "Current")  %>%  ungroup() %>% mutate(PP90 = round(PP90,2)) %>% arrange(PP90) %>%  top_n(3,PP90) %>%  top_n(3,cum.Points)
+
+PP90 <- rbind(PP90_Keepers,PP90_Defenders,PP90_Midfielders,PP90_Strikers)
 
 Team <- Data %>% filter(Season == "Current") %>% ungroup() %>% group_by(Team) %>% select(-ID, -Name, -Game, -Minutes, -Against, -Location, - Number, -Position, -scored, -brace, -hattrick, -Save.3, -Save.6, -pred.score, -pred.clean, -pred.assist, -pred.Save.3, -GameWeek, -SeasonGame) %>% summarise_if(is.numeric,funs(Average = mean,Total = sum))%>% mutate_if(is.numeric,round, digits = 2)
 
@@ -53,283 +66,75 @@ Player <- Data %>% filter(Season == "Current") %>% ungroup() %>% group_by(Name) 
 Player.Probabilities <- Data %>% filter(Season == "Current") %>% group_by(Name) %>% arrange(Game) %>% summarise_all(funs(last)) %>% select(Name,Team, Position, pred.score, pred.clean, pred.assist, pred.Save.3, Pred.points)%>% mutate_if(is.numeric,round, digits = 2)
 ```
 
-Predicted 15
+Best Team
 ==========================================
-Row {data-height=200}
+
+
+Row {.tabset}
 ------------------------------------------
 
-> Below are listed the players with the highest estimated point value for their respective positions. Estimated point value is calculated by multiplying the predicted probability of an event (such as scoring) by the point value of that event.
+Here are several different methods of selecting your team as well as a comparison of each method.
 
-Row {data-height=200}
-------------------------------------------
-
-### Keeper 1
+### Predicted Best (Engine1)
 
 ```{r}
-name <- Pred_Keepers[1, "Name"]
-point <- Pred_Keepers[1, "Pred.points"]
-valueBox(paste(point,"points"), caption = name, color = "#008000")
+Pred %>% ggplot(aes(Name,Pred.points,fill = Position)) + geom_bar(stat = "identity") + theme_tufte() + scale_fill_tableau()+ coord_flip()
 ```
 
-### Keeper 2
+### Top Points
 
 ```{r}
-name <- Pred_Keepers[2, "Name"]
-point <- Pred_Keepers[2, "Pred.points"]
-valueBox(paste(point,"points"), caption = name, color = "#008000")
+Top %>% ggplot(aes(Name, Points, fill = Position)) + geom_bar(stat = "identity") + theme_tufte() + scale_fill_tableau()+ coord_flip()
 ```
 
-Row {data-height=200}
------------------------------------------
-
-### Defender 1
+### Highest PP90
 
 ```{r}
-name <- Pred_Defenders[1, "Name"]
-point <- Pred_Defenders[1, "Pred.points"]
-valueBox(paste(point,"points"), caption = name, color = "#0000FF")
+PP90 %>% ggplot(aes(Name, PP90, fill = Position)) + geom_bar(stat = "identity") + theme_tufte() + scale_fill_tableau()+ coord_flip()
 ```
 
-### Defender 2
+### Comparison
+
 
 ```{r}
-name <- Pred_Defenders[2, "Name"]
-point <- Pred_Defenders[2, "Pred.points"]
-valueBox(paste(point,"points"), caption = name, color = "#0000FF")
-```
-
-### Defender 3
-
-```{r}
-name <- Pred_Defenders[3, "Name"]
-point <- Pred_Defenders[3, "Pred.points"]
-valueBox(paste(point,"points"), caption = name, color = "#0000FF")
-```
-
-### Defender 4
-
-```{r}
-name <- Pred_Defenders[4, "Name"]
-point <- Pred_Defenders[4, "Pred.points"]
-valueBox(paste(point,"points"), caption = name, color = "#0000FF")
-```
-
-### Defender 5
-
-```{r}
-name <- Pred_Defenders[5, "Name"]
-point <- Pred_Defenders[5, "Pred.points"]
-valueBox(paste(point,"points"), caption = name, color = "#0000FF")
-```
-
-Row {data-height=200}
------------------------------------------
-
-### Midfielder 1
-
-```{r}
-name <- Pred_Midfielders[1, "Name"]
-point <- Pred_Midfielders[1, "Pred.points"]
-valueBox(paste(point,"points"), caption = name, color = "#e6e600")
-```
-
-### Midfielder 2
-
-```{r}
-name <- Pred_Midfielders[2, "Name"]
-point <- Pred_Midfielders[2, "Pred.points"]
-valueBox(paste(point,"points"), caption = name, color = "#e6e600")
-```
-
-### Midfielder 3
-
-```{r}
-name <- Pred_Midfielders[3, "Name"]
-point <- Pred_Midfielders[3, "Pred.points"]
-valueBox(paste(point,"points"), caption = name, color = "#e6e600")
-```
-
-### Midfielder 4
-
-```{r}
-name <- Pred_Midfielders[4, "Name"]
-point <- Pred_Midfielders[4, "Pred.points"]
-valueBox(paste(point,"points"), caption = name, color = "#e6e600")
-```
-
-### Midfielder 5
-
-```{r}
-name <- Pred_Midfielders[5, "Name"]
-point <- Pred_Midfielders[5, "Pred.points"]
-valueBox(paste(point,"points"), caption = name, color = "#e6e600")
-```
-
-Row {data-height=200}
------------------------------------------
-
-### Striker 1
-
-```{r}
-name <- Pred_Strikers[1, "Name"]
-point <- Pred_Strikers[1, "Pred.points"]
-valueBox(paste(point,"points"), caption = name, color = "#FF0000")
-```
-
-### Striker 2
-
-```{r}
-name <- Pred_Strikers[2, "Name"]
-point <- Pred_Strikers[2, "Pred.points"]
-valueBox(paste(point,"points"), caption = name, color = "#FF0000")
-```
-
-### Striker 3
-
-```{r}
-name <- Pred_Strikers[3, "Name"]
-point <- Pred_Strikers[3, "Pred.points"]
-valueBox(paste(point,"points"), caption = name, color = "#FF0000")
-```
-
-
-Top 15
-==========================================
-Row {data-height=200}
-------------------------------------------
-
-> The Top 15 represents the players with the highest total of what I have deemed "key" stats. Saves for Keepers, Clean Sheets for Defenders, Goals for the rest. Currently the totals represent the 16/17 season, but after GW1 will represent the current season.
-
-Row {data-height=200}
-------------------------------------------
-
-### Keeper 1
-
-```{r}
-name <- Top_Keepers[1, "Name"]
-point <- Top_Keepers[1, "Saves"]
-valueBox(paste(point,"saves"), caption = name, color = "#008000")
-```
-
-### Keeper 2
-
-```{r}
-name <- Top_Keepers[2, "Name"]
-point <- Top_Keepers[2, "Saves"]
-valueBox(paste(point,"saves"), caption = name, color = "#008000")
-```
-
-Row {data-height=200}
------------------------------------------
-
-### Defender 1
-
-```{r}
-name <- Top_Defenders[1, "Name"]
-point <- Top_Defenders[1, "Clean.sheet"]
-valueBox(paste(point,"clean"), caption = name, color = "#0000FF")
-```
-
-### Defender 2
-
-```{r}
-name <- Top_Defenders[2, "Name"]
-point <- Top_Defenders[2, "Clean.sheet"]
-valueBox(paste(point,"clean"), caption = name, color = "#0000FF")
-```
-
-### Defender 3
-
-```{r}
-name <- Top_Defenders[3, "Name"]
-point <- Top_Defenders[3, "Clean.sheet"]
-valueBox(paste(point,"clean"), caption = name, color = "#0000FF")
-```
-
-### Defender 4
-
-```{r}
-name <- Top_Defenders[4, "Name"]
-point <- Top_Defenders[4, "Clean.sheet"]
-valueBox(paste(point,"clean"), caption = name, color = "#0000FF")
-```
-
-### Defender 5
-
-```{r}
-name <- Top_Defenders[5, "Name"]
-point <- Top_Defenders[5, "Clean.sheet"]
-valueBox(paste(point,"clean"), caption = name, color = "#0000FF")
-```
-
-Row {data-height=200}
------------------------------------------
-
-### Midfielder 1
-
-```{r}
-name <- Top_Midfielders[1, "Name"]
-point <- Top_Midfielders[1, "Goals"]
-valueBox(paste(point,"goals"), caption = name, color = "#e6e600")
-```
-
-### Midfielder 2
-
-```{r}
-name <- Top_Midfielders[2, "Name"]
-point <- Top_Midfielders[2, "Goals"]
-valueBox(paste(point,"goals"), caption = name, color = "#e6e600")
-```
-
-### Midfielder 3
-
-```{r}
-name <- Top_Midfielders[3, "Name"]
-point <- Top_Midfielders[3, "Goals"]
-valueBox(paste(point,"goals"), caption = name, color = "#e6e600")
-```
-
-### Midfielder 4
-
-```{r}
-name <- Top_Midfielders[4, "Name"]
-point <- Top_Midfielders[4, "Goals"]
-valueBox(paste(point,"goals"), caption = name, color = "#e6e600")
-```
-
-### Midfielder 5
-
-```{r}
-name <- Top_Midfielders[5, "Name"]
-point <- Top_Midfielders[5, "Goals"]
-valueBox(paste(point,"goals"), caption = name, color = "#e6e600")
-```
-
-Row {data-height=200}
------------------------------------------
-
-### Striker 1
-
-```{r}
-name <- Top_Strikers[1, "Name"]
-point <- Top_Strikers[1, "Goals"]
-valueBox(paste(point,"goals"), caption = name, color = "#FF0000")
-```
-
-### Striker 2
-
-```{r}
-name <- Top_Strikers[2, "Name"]
-point <- Top_Strikers[2, "Goals"]
-valueBox(paste(point,"goals"), caption = name, color = "#FF0000")
-```
-
-### Striker 3
-
-```{r}
-name <- Top_Strikers[3, "Name"]
-point <- Top_Strikers[3, "Goals"]
-valueBox(paste(point,"goals"), caption = name, color = "#FF0000")
+Compare.D <- Data %>% select(ID,Name,Position,Season, GameWeek,Game,Points,Pred.points,PP90,cum.Points) %>% group_by(Name) %>% arrange(Game) %>% mutate(lag.PP90 = lag(PP90),Point.Total = lag(cum.Points)) %>% filter(Season == "Current")
+Graph <- data.frame(0,0,0,0,0)
+names(Graph) <- c("GameWeek","Predicted","PP90","Total Points","Best")
+for(i in 1:max(Compare.D$GameWeek)){
+#predicted team
+P_Keepers <- Compare.D %>% filter(Position == "G", GameWeek == i) %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>% arrange(Pred.points) %>%  top_n(2,Pred.points) %>% top_n(2,Point.Total)
+P_Defenders <- Compare.D %>% filter(Position == "D", GameWeek == i) %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>% arrange(Pred.points) %>%  top_n(5,Pred.points) %>% top_n(5,Point.Total)
+P_Midfielders <- Compare.D %>% filter(Position == "M", GameWeek == i) %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>% arrange(Pred.points) %>%  top_n(5,Pred.points) %>% top_n(5,Point.Total)
+P_Strikers <- Compare.D %>% filter(Position == "F", GameWeek == i) %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>% arrange(Pred.points) %>%  top_n(5,Pred.points) %>% top_n(3,Point.Total)
+P <- rbind(P_Keepers,P_Defenders,P_Midfielders,P_Strikers) %>% top_n(11,Pred.points) %>% top_n(11,Point.Total)
+Predicted <- sum(P$Points)
+#PP90 team
+P90_Keepers <- Compare.D %>% filter(Position == "G", GameWeek == i) %>%  ungroup() %>% mutate(lag.PP90 = round(lag.PP90,2)) %>% arrange(lag.PP90) %>%  top_n(2,lag.PP90) %>% top_n(2,Point.Total)
+P90_Defenders <- Compare.D %>% filter(Position == "D", GameWeek == i) %>%  ungroup() %>% mutate(lag.PP90 = round(lag.PP90,2)) %>% arrange(lag.PP90) %>%  top_n(5,lag.PP90) %>% top_n(5,Point.Total)
+P90_Midfielders <- Compare.D %>% filter(Position == "M", GameWeek == i) %>%  ungroup() %>% mutate(lag.PP90 = round(lag.PP90,2)) %>% arrange(lag.PP90) %>%  top_n(5,lag.PP90) %>% top_n(5,Point.Total)
+P90_Strikers <- Compare.D %>% filter(Position == "F", GameWeek == i) %>%  ungroup() %>% mutate(lag.PP90 = round(lag.PP90,2)) %>% arrange(lag.PP90) %>%  top_n(5,lag.PP90) %>% top_n(3,Point.Total)
+P90 <- rbind(P90_Keepers,P90_Defenders,P90_Midfielders,P90_Strikers) %>% top_n(11,lag.PP90) %>% top_n(11,Point.Total)
+t.PP90 <- sum(P90$Points)
+#Total Points
+P_Keepers <- Compare.D %>% filter(Position == "G", GameWeek == i) %>%  ungroup() %>% mutate(Point.Total = round(Point.Total,2)) %>% arrange(Point.Total) %>%  top_n(2,Point.Total) %>% top_n(2,lag.PP90)
+P_Defenders <- Compare.D %>% filter(Position == "D", GameWeek == i) %>%  ungroup() %>% mutate(Point.Total = round(Point.Total,2)) %>% arrange(Point.Total) %>%  top_n(5,Point.Total) %>% top_n(5,lag.PP90)
+P_Midfielders <- Compare.D %>% filter(Position == "M", GameWeek == i) %>%  ungroup() %>% mutate(Point.Total = round(Point.Total,2)) %>% arrange(Point.Total) %>%  top_n(5,Point.Total) %>% top_n(5,lag.PP90)
+P_Strikers <- Compare.D %>% filter(Position == "F", GameWeek == i) %>%  ungroup() %>% mutate(Point.Total = round(Point.Total,2)) %>% arrange(Point.Total) %>%  top_n(5,Point.Total) %>% top_n(3,lag.PP90)
+tots <- rbind(P_Keepers,P_Defenders,P_Midfielders,P_Strikers) %>% top_n(11,Point.Total) %>% top_n(11,lag.PP90)
+Total <- sum(tots$Points)
+#Best
+P_Keepers <- Compare.D %>% filter(Position == "G", GameWeek == i) %>%  ungroup() %>% mutate(Points = round(Points,2)) %>% arrange(Points) %>%  top_n(2,Points) %>% top_n(2,lag.PP90)
+P_Defenders <- Compare.D %>% filter(Position == "D", GameWeek == i) %>%  ungroup() %>% mutate(Points = round(Points,2)) %>% arrange(Points) %>%  top_n(5,Points) %>% top_n(5,lag.PP90)
+P_Midfielders <- Compare.D %>% filter(Position == "M", GameWeek == i) %>%  ungroup() %>% mutate(Points = round(Points,2)) %>% arrange(Points) %>%  top_n(5,Points) %>% top_n(5,lag.PP90)
+P_Strikers <- Compare.D %>% filter(Position == "F", GameWeek == i) %>%  ungroup() %>% mutate(Points = round(Points,2)) %>% arrange(Points) %>%  top_n(5,Points) %>% top_n(3,lag.PP90)
+best <- rbind(P_Keepers,P_Defenders,P_Midfielders,P_Strikers) %>% top_n(11,Points) %>% top_n(11,lag.PP90)
+Best <- sum(best$Points)
+Graph[i,] <- c(i,Predicted,t.PP90,Total,Best)
+}
+Graph2 <- Graph %>% select(-GameWeek) %>% mutate_all(cumsum)
+Graph2$GameWeek <- Graph$GameWeek
+Graph <- Graph2 %>% gather("Model","Value",1:4)
+Graph %>% ggplot(aes(GameWeek,Value,color = Model)) + geom_line() + labs(x = "Week",y = "Cumulative Points") + scale_x_continuous(breaks = seq(1,34,by = 1), expand = c(0,0)) + theme_fivethirtyeight() + scale_color_tableau()
 ```
 
 Teams
