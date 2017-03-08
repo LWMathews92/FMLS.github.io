@@ -134,7 +134,7 @@ Graph[i,] <- c(i,Predicted,t.PP90,Total,Best)
 Graph2 <- Graph %>% select(-GameWeek) %>% mutate_all(cumsum)
 Graph2$GameWeek <- Graph$GameWeek
 Graph <- Graph2 %>% gather("Model","Value",1:4)
-if(nrow(Graph2) > 4){Graph %>% ggplot(aes(GameWeek,Value,color = Model)) + geom_line() + labs(x = "Week",y = "Cumulative Points") + scale_x_continuous(breaks = seq(1,34,by = 1), expand = c(0,0)) + theme_fivethirtyeight() + scale_color_tableau()}else{Graph %>% ggplot(aes(GameWeek,Value,fill = Model)) + geom_bar(stat = "identity", position = "dodge") + labs(x = "Week",y = "Cumulative Points") + scale_x_continuous(breaks = seq(1,34,by = 1), expand = c(0,0)) + theme_fivethirtyeight() + scale_fill_tableau()}
+if(nrow(Graph2) > 4){Graph %>% ggplot(aes(GameWeek,Value,color = Model)) + geom_line() + labs(x = "Week",y = "Cumulative Points") + scale_x_continuous(breaks = seq(1,34,by = 1), expand = c(0,0)) + theme_economist_white() + scale_color_tableau()}else{Graph %>% ggplot(aes(GameWeek,Value,fill = Model)) + geom_bar(stat = "identity", position = "dodge") + labs(x = "Week",y = "Cumulative Points") + scale_x_continuous(breaks = seq(1,34,by = 1), expand = c(0,0)) + theme_economist_white() + scale_fill_tableau()}
 ```
 
 Teams
