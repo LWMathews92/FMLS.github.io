@@ -15,8 +15,9 @@ require("tidyr")
 require("ggthemes")
 require("knitr")
 require(DT)
-Starter <- read.csv(paste(set.local,"DataPredicted.csv",sep = ""), stringsAsFactors = FALSE) %>% select(-X)
-Data <- Starter[,1:32]
+Starter <- read.csv(paste(set.local,"DataPredicted.csv",sep = ""), stringsAsFactors = FALSE)
+Twitter.Teams <- read.csv(paste(set.local,"TwitTeams.csv",sep = ""))
+Data <- Starter %>% select(Number:PP90, Score, Word)
 Predictions <- Starter %>% select(ID,Game,starts_with("L"),-Location)
 
 if(nrow(Data %>% filter(Season == "Current")) == 0){Data[Data$Season == "16/17 Season","Season"] <- "Current"}
@@ -49,15 +50,19 @@ Pred_Strikers <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all
 
 Pred <- rbind(Pred_Keepers,Pred_Defenders,Pred_Midfielders,Pred_Strikers)
 
-#remove later
-Data <- Data %>% group_by(Season,Name) %>% arrange(Game) %>% mutate(cum.Points = cumsum(Points), cum.Minutes = cumsum(Minutes)) %>% ungroup() %>% group_by(ID) %>% mutate(PP90 = round(ifelse(cum.Minutes > 90,cum.Points / cum.Minutes * 90,0),0))
-
 PP90_Keepers <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "G", Season == "Current") %>%  ungroup() %>% mutate(PP90 = round(PP90,2)) %>% arrange(PP90) %>%  top_n(2,PP90) %>%  top_n(2,cum.Points)
 PP90_Defenders <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "D", Season == "Current")  %>%  ungroup() %>% mutate(PP90 = round(PP90,2)) %>% arrange(PP90) %>%  top_n(5,PP90) %>%  top_n(5,cum.Points)
 PP90_Midfielders <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "M", Season == "Current")  %>%  ungroup() %>% mutate(PP90 = round(PP90,2)) %>% arrange(PP90) %>%  top_n(5,PP90) %>%  top_n(5,cum.Points)
 PP90_Strikers <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "F", Season == "Current")  %>%  ungroup() %>% mutate(PP90 = round(PP90,2)) %>% arrange(PP90) %>%  top_n(3,PP90) %>%  top_n(3,cum.Points)
 
 PP90 <- rbind(PP90_Keepers,PP90_Defenders,PP90_Midfielders,PP90_Strikers)
+
+Tweet_Keepers <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "G", Season == "Current") %>%  ungroup() %>% mutate(Score = round(Score,2)) %>% arrange(Score) %>%  top_n(2,Score) %>%  top_n(2,cum.Points)
+Tweet_Defenders <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "D", Season == "Current")  %>%  ungroup() %>% mutate(Score = round(Score,2)) %>% arrange(Score) %>%  top_n(5,Score) %>%  top_n(5,cum.Points)
+Tweet_Midfielders <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "M", Season == "Current")  %>%  ungroup() %>% mutate(Score = round(Score,2)) %>% arrange(Score) %>%  top_n(5,Score) %>%  top_n(5,cum.Points)
+Tweet_Strikers <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "F", Season == "Current")  %>%  ungroup() %>% mutate(Score = round(Score,2)) %>% arrange(Score) %>%  top_n(3,Score) %>%  top_n(3,cum.Points)
+
+Tweet <- rbind(Tweet_Keepers,Tweet_Defenders,Tweet_Midfielders,Tweet_Strikers)
 
 Team <- Data %>% filter(Season == "Current") %>% ungroup() %>% group_by(Team) %>% select(-ID, -Name, -Game, -Minutes, -Against, -Location, - Number, -Position, -scored, -brace, -hattrick, -Save.3, -Save.6, -pred.score, -pred.clean, -pred.assist, -pred.Save.3, -GameWeek, -SeasonGame) %>% summarise_if(is.numeric,funs(Average = mean,Total = sum))%>% mutate_if(is.numeric,round, digits = 2)
 
@@ -93,13 +98,19 @@ Top %>% ggplot(aes(Name, Points, fill = Position)) + geom_bar(stat = "identity")
 PP90 %>% ggplot(aes(Name, PP90, fill = Position)) + geom_bar(stat = "identity") + theme_tufte() + scale_fill_tableau()+ coord_flip()
 ```
 
+### Twitter Sentiment
+
+```{r}
+Tweet %>% mutate(Sentiment = Score) %>% ggplot(aes(Name, Sentiment, fill = Position)) + geom_bar(stat = "identity") + theme_tufte() + scale_fill_tableau()+ coord_flip()
+```
+
 ### Comparison
 
 
 ```{r}
-Compare.D <- Data %>% select(ID,Name,Position,Season, GameWeek,Game,Points,Pred.points,PP90,cum.Points) %>% group_by(Name) %>% arrange(Game) %>% mutate(lag.PP90 = lag(PP90),Point.Total = lag(cum.Points)) %>% filter(Season == "Current")
-Graph <- data.frame(0,0,0,0,0)
-names(Graph) <- c("GameWeek","Predicted","PP90","Total Points","Best")
+Compare.D <- Data %>% select(ID,Name,Position,Season, GameWeek,Game,Points,Pred.points,PP90,Sentiment = Score,cum.Points) %>% group_by(Name) %>% arrange(Game) %>% mutate(PP90 = lag(PP90),Point.Total = lag(cum.Points),Pred.points == lag(Pred.points),Sentiment = lag(Sentiment)) %>% filter(Season == "Current")
+Graph <- data.frame(0,0,0,0,0,0)
+names(Graph) <- c("GameWeek","Predicted","PP90","Total Points","Twitter","Best")
 for(i in 1:max(Compare.D$GameWeek)){
 #predicted team
 P_Keepers <- Compare.D %>% filter(Position == "G", GameWeek == i) %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>% arrange(Pred.points) %>%  top_n(2,Pred.points) %>% top_n(2,Point.Total)
@@ -107,38 +118,210 @@ P_Defenders <- Compare.D %>% filter(Position == "D", GameWeek == i) %>%  ungroup
 P_Midfielders <- Compare.D %>% filter(Position == "M", GameWeek == i) %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>% arrange(Pred.points) %>%  top_n(5,Pred.points) %>% top_n(5,Point.Total)
 P_Strikers <- Compare.D %>% filter(Position == "F", GameWeek == i) %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>% arrange(Pred.points) %>%  top_n(5,Pred.points) %>% top_n(3,Point.Total)
 P <- rbind(P_Keepers,P_Defenders,P_Midfielders,P_Strikers) %>% top_n(11,Pred.points) %>% top_n(11,Point.Total)
-Predicted <- sum(P$Points)
+Predicted <- sum(P$Points, na.rm = TRUE)
 #PP90 team
-P90_Keepers <- Compare.D %>% filter(Position == "G", GameWeek == i) %>%  ungroup() %>% mutate(lag.PP90 = round(lag.PP90,2)) %>% arrange(lag.PP90) %>%  top_n(2,lag.PP90) %>% top_n(2,Point.Total)
-P90_Defenders <- Compare.D %>% filter(Position == "D", GameWeek == i) %>%  ungroup() %>% mutate(lag.PP90 = round(lag.PP90,2)) %>% arrange(lag.PP90) %>%  top_n(5,lag.PP90) %>% top_n(5,Point.Total)
-P90_Midfielders <- Compare.D %>% filter(Position == "M", GameWeek == i) %>%  ungroup() %>% mutate(lag.PP90 = round(lag.PP90,2)) %>% arrange(lag.PP90) %>%  top_n(5,lag.PP90) %>% top_n(5,Point.Total)
-P90_Strikers <- Compare.D %>% filter(Position == "F", GameWeek == i) %>%  ungroup() %>% mutate(lag.PP90 = round(lag.PP90,2)) %>% arrange(lag.PP90) %>%  top_n(5,lag.PP90) %>% top_n(3,Point.Total)
-P90 <- rbind(P90_Keepers,P90_Defenders,P90_Midfielders,P90_Strikers) %>% top_n(11,lag.PP90) %>% top_n(11,Point.Total)
-t.PP90 <- sum(P90$Points)
+P90_Keepers <- Compare.D %>% filter(Position == "G", GameWeek == i) %>%  ungroup() %>% mutate(PP90 = round(PP90,2)) %>% arrange(PP90) %>%  top_n(2,PP90) %>% top_n(2,Point.Total)
+P90_Defenders <- Compare.D %>% filter(Position == "D", GameWeek == i) %>%  ungroup() %>% mutate(PP90 = round(PP90,2)) %>% arrange(PP90) %>%  top_n(5,PP90) %>% top_n(5,Point.Total)
+P90_Midfielders <- Compare.D %>% filter(Position == "M", GameWeek == i) %>%  ungroup() %>% mutate(PP90 = round(PP90,2)) %>% arrange(PP90) %>%  top_n(5,PP90) %>% top_n(5,Point.Total)
+P90_Strikers <- Compare.D %>% filter(Position == "F", GameWeek == i) %>%  ungroup() %>% mutate(PP90 = round(PP90,2)) %>% arrange(PP90) %>%  top_n(5,PP90) %>% top_n(3,Point.Total)
+P90 <- rbind(P90_Keepers,P90_Defenders,P90_Midfielders,P90_Strikers) %>% top_n(11,PP90) %>% top_n(11,Point.Total)
+t.PP90 <- sum(P90$Points, na.rm = TRUE)
 #Total Points
-P_Keepers <- Compare.D %>% filter(Position == "G", GameWeek == i) %>%  ungroup() %>% mutate(Point.Total = round(Point.Total,2)) %>% arrange(Point.Total) %>%  top_n(2,Point.Total) %>% top_n(2,lag.PP90)
-P_Defenders <- Compare.D %>% filter(Position == "D", GameWeek == i) %>%  ungroup() %>% mutate(Point.Total = round(Point.Total,2)) %>% arrange(Point.Total) %>%  top_n(5,Point.Total) %>% top_n(5,lag.PP90)
-P_Midfielders <- Compare.D %>% filter(Position == "M", GameWeek == i) %>%  ungroup() %>% mutate(Point.Total = round(Point.Total,2)) %>% arrange(Point.Total) %>%  top_n(5,Point.Total) %>% top_n(5,lag.PP90)
-P_Strikers <- Compare.D %>% filter(Position == "F", GameWeek == i) %>%  ungroup() %>% mutate(Point.Total = round(Point.Total,2)) %>% arrange(Point.Total) %>%  top_n(5,Point.Total) %>% top_n(3,lag.PP90)
-tots <- rbind(P_Keepers,P_Defenders,P_Midfielders,P_Strikers) %>% top_n(11,Point.Total) %>% top_n(11,lag.PP90)
-Total <- sum(tots$Points)
+P_Keepers <- Compare.D %>% filter(Position == "G", GameWeek == i) %>%  ungroup() %>% mutate(Point.Total = round(Point.Total,2)) %>% arrange(Point.Total) %>%  top_n(2,Point.Total) %>% top_n(2,PP90)
+P_Defenders <- Compare.D %>% filter(Position == "D", GameWeek == i) %>%  ungroup() %>% mutate(Point.Total = round(Point.Total,2)) %>% arrange(Point.Total) %>%  top_n(5,Point.Total) %>% top_n(5,PP90)
+P_Midfielders <- Compare.D %>% filter(Position == "M", GameWeek == i) %>%  ungroup() %>% mutate(Point.Total = round(Point.Total,2)) %>% arrange(Point.Total) %>%  top_n(5,Point.Total) %>% top_n(5,PP90)
+P_Strikers <- Compare.D %>% filter(Position == "F", GameWeek == i) %>%  ungroup() %>% mutate(Point.Total = round(Point.Total,2)) %>% arrange(Point.Total) %>%  top_n(5,Point.Total) %>% top_n(3,PP90)
+tots <- rbind(P_Keepers,P_Defenders,P_Midfielders,P_Strikers) %>% top_n(11,Point.Total) %>% top_n(11,PP90)
+Total <- sum(tots$Points, na.rm = TRUE)
+#Twitter
+twit_Keepers <- Compare.D %>% filter(Position == "G", GameWeek == i) %>%  ungroup() %>% mutate(Sentiment = round(Sentiment,2)) %>% arrange(Sentiment) %>%  top_n(2,Sentiment) %>% top_n(2,Point.Total)
+twit_Defenders <- Compare.D %>% filter(Position == "D", GameWeek == i) %>%  ungroup() %>% mutate(Sentiment = round(Sentiment,2)) %>% arrange(Sentiment) %>%  top_n(5,Sentiment) %>% top_n(5,Point.Total)
+twit_Midfielders <- Compare.D %>% filter(Position == "M", GameWeek == i) %>%  ungroup() %>% mutate(Sentiment = round(Sentiment,2)) %>% arrange(Sentiment) %>%  top_n(5,Sentiment) %>% top_n(5,Point.Total)
+twit_Strikers <- Compare.D %>% filter(Position == "F", GameWeek == i) %>%  ungroup() %>% mutate(Sentiment = round(Sentiment,2)) %>% arrange(Sentiment) %>%  top_n(5,Sentiment) %>% top_n(3,Point.Total)
+tots <- rbind(twit_Keepers,twit_Defenders,twit_Midfielders,twit_Strikers) %>% top_n(11,Sentiment) %>% top_n(11,Point.Total)
+Twitter <- sum(tots$Points, na.rm = TRUE)
 #Best
-P_Keepers <- Compare.D %>% filter(Position == "G", GameWeek == i) %>%  ungroup() %>% mutate(Points = round(Points,2)) %>% arrange(Points) %>%  top_n(2,Points) %>% top_n(2,lag.PP90)
-P_Defenders <- Compare.D %>% filter(Position == "D", GameWeek == i) %>%  ungroup() %>% mutate(Points = round(Points,2)) %>% arrange(Points) %>%  top_n(5,Points) %>% top_n(5,lag.PP90)
-P_Midfielders <- Compare.D %>% filter(Position == "M", GameWeek == i) %>%  ungroup() %>% mutate(Points = round(Points,2)) %>% arrange(Points) %>%  top_n(5,Points) %>% top_n(5,lag.PP90)
-P_Strikers <- Compare.D %>% filter(Position == "F", GameWeek == i) %>%  ungroup() %>% mutate(Points = round(Points,2)) %>% arrange(Points) %>%  top_n(5,Points) %>% top_n(3,lag.PP90)
-best <- rbind(P_Keepers,P_Defenders,P_Midfielders,P_Strikers) %>% top_n(11,Points) %>% top_n(11,lag.PP90)
-Best <- sum(best$Points)
-Graph[i,] <- c(i,Predicted,t.PP90,Total,Best)
+P_Keepers <- Compare.D %>% filter(Position == "G", GameWeek == i) %>%  ungroup() %>% mutate(Points = round(Points,2)) %>% arrange(Points) %>%  top_n(2,Points) %>% top_n(2,PP90)
+P_Defenders <- Compare.D %>% filter(Position == "D", GameWeek == i) %>%  ungroup() %>% mutate(Points = round(Points,2)) %>% arrange(Points) %>%  top_n(5,Points) %>% top_n(5,PP90)
+P_Midfielders <- Compare.D %>% filter(Position == "M", GameWeek == i) %>%  ungroup() %>% mutate(Points = round(Points,2)) %>% arrange(Points) %>%  top_n(5,Points) %>% top_n(5,PP90)
+P_Strikers <- Compare.D %>% filter(Position == "F", GameWeek == i) %>%  ungroup() %>% mutate(Points = round(Points,2)) %>% arrange(Points) %>%  top_n(5,Points) %>% top_n(3,PP90)
+best <- rbind(P_Keepers,P_Defenders,P_Midfielders,P_Strikers) %>% top_n(11,Points) %>% top_n(11,PP90)
+Best <- sum(best$Points, na.rm = TRUE)
+Graph[i,] <- c(i,Predicted,t.PP90,Total,Twitter,Best)
 }
 Graph2 <- Graph %>% select(-GameWeek) %>% mutate_all(cumsum)
 Graph2$GameWeek <- Graph$GameWeek
-Graph <- Graph2 %>% gather("Model","Value",1:4)
+Graph <- Graph2 %>% gather("Model","Value",1:5)
 if(nrow(Graph2) > 4){Graph %>% ggplot(aes(GameWeek,Value,color = Model)) + geom_line() + labs(x = "Week",y = "Cumulative Points") + scale_x_continuous(breaks = seq(1,34,by = 1), expand = c(0,0)) + theme_economist_white() + scale_color_tableau()}else{Graph %>% ggplot(aes(GameWeek,Value,fill = Model)) + geom_bar(stat = "identity", position = "dodge") + labs(x = "Week",y = "Cumulative Points") + scale_x_continuous(breaks = seq(1,34,by = 1), expand = c(0,0)) + theme_economist_white() + scale_fill_tableau()}
 ```
 
 Teams
 ==========================================
+
+Row {data-height=100}
+------------------------------------------
+
+Sentiment references weights developed in the paper [The Affective Weight of Lexicon by Carlo Strapparava, Alessandro Valitutti, Oliviero Stock](http://hnk.ffzg.hr/bibl/lrec2006/pdf/186_pdf.pdf). Simply put, Large Positive numbers = good | Large Negative Numbers = bad. Below is the current sentiment for each team that could be taken from Twitter.
+
+Row
+------------------------------------------
+
+### Portland Timbers
+
+```{r}
+sentiment <- round(Twitter.Teams[1,3],2)
+valueBox(sentiment,caption = Twitter.Teams[1,2], icon = "fa-twitter",color = "#004812")
+```
+
+### Minnesota United FC
+
+```{r}
+sentiment <- round(Twitter.Teams[2,3],2)
+valueBox(sentiment,caption = Twitter.Teams[2,2], icon = "fa-twitter",color = "#8BB8E8")
+```
+
+### Colorado Rapids
+
+```{r}
+sentiment <- round(Twitter.Teams[3,3],2)
+valueBox(sentiment,caption = Twitter.Teams[3,2], icon = "fa-twitter",color = "#862633")
+```
+
+### New England Revolution
+
+```{r}
+sentiment <- round(Twitter.Teams[4,3],2)
+valueBox(sentiment,caption = Twitter.Teams[4,2], icon = "fa-twitter",color = "#C63323")
+```
+
+### Columbus Crew SC
+
+```{r}
+sentiment <- round(Twitter.Teams[5,3],2)
+valueBox(sentiment,caption = Twitter.Teams[5,2], icon = "fa-twitter",color = "#FFF200")
+```
+
+### Chicago Fire
+
+```{r}
+sentiment <- round(Twitter.Teams[6,3],2)
+valueBox(sentiment,caption = Twitter.Teams[6,2], icon = "fa-twitter",color = "#102141")
+```
+
+### D.C. United
+
+```{r}
+sentiment <- round(Twitter.Teams[7,3],2)
+valueBox(sentiment,caption = Twitter.Teams[7,2], icon = "fa-twitter",color = "#EF3E42")
+```
+
+### Sporting Kansas City
+
+```{r}
+sentiment <- round(Twitter.Teams[8,3],2)
+valueBox(sentiment,caption = Twitter.Teams[8,2], icon = "fa-twitter",color = "#93B1D7")
+```
+
+### Houston Dynamo
+
+```{r}
+sentiment <- round(Twitter.Teams[9,3],2)
+valueBox(sentiment,caption = Twitter.Teams[9,2], icon = "fa-twitter",color = "#F68712")
+```
+
+### Seattle Sounders FC
+
+```{r}
+sentiment <- round(Twitter.Teams[10,3],2)
+valueBox(sentiment,caption = Twitter.Teams[10,2], icon = "fa-twitter",color = "#5D9732")
+```
+
+### LA Galaxy
+
+```{r}
+sentiment <- round(Twitter.Teams[11,3],2)
+valueBox(sentiment,caption = Twitter.Teams[11,2], icon = "fa-twitter",color = "#00245D")
+```
+
+Row
+------------------------------------------
+
+### FC Dallas
+
+```{r}
+sentiment <- round(Twitter.Teams[12,3],2)
+valueBox(sentiment,caption = Twitter.Teams[12,2], icon = "fa-twitter",color = "#BF0D3E")
+```
+
+### Real Salt Lake
+
+```{r}
+sentiment <- round(Twitter.Teams[13,3],2)
+valueBox(sentiment,caption = Twitter.Teams[13,2], icon = "fa-twitter",color = "#B30838")
+```
+
+### Toronto FC
+
+```{r}
+sentiment <- round(Twitter.Teams[14,3],2)
+valueBox(sentiment,caption = Twitter.Teams[14,2], icon = "fa-twitter",color = "#E31937")
+```
+
+### San Jose Earthquakes
+
+```{r}
+sentiment <- round(Twitter.Teams[15,3],2)
+valueBox(sentiment,caption = Twitter.Teams[15,2], icon = "fa-twitter",color = "#231F20")
+```
+
+### Montreal Impact
+
+```{r}
+sentiment <- round(Twitter.Teams[16,3],2)
+valueBox(sentiment,caption = Twitter.Teams[16,2], icon = "fa-twitter",color = "#00529B")
+```
+
+### Atlanta United FC
+
+```{r}
+sentiment <- round(Twitter.Teams[17,3],2)
+valueBox(sentiment,caption = Twitter.Teams[17,2], icon = "fa-twitter",color = "#9D2235")
+```
+
+### New York Red Bulls
+
+```{r}
+sentiment <- round(Twitter.Teams[18,3],2)
+valueBox(sentiment,caption = Twitter.Teams[18,2], icon = "fa-twitter",color = "#ED1E36")
+```
+
+### Orlando City SC
+
+```{r}
+sentiment <- round(Twitter.Teams[19,3],2)
+valueBox(sentiment,caption = Twitter.Teams[19,2], icon = "fa-twitter",color = "#612B9B")
+```
+
+### New York City FC
+
+```{r}
+sentiment <- round(Twitter.Teams[20,3],2)
+valueBox(sentiment,caption = Twitter.Teams[9,2], icon = "fa-twitter",color = "#0F1D41")
+```
+
+### Vancouver Whitecaps FC
+
+```{r}
+sentiment <- round(Twitter.Teams[21,3],2)
+valueBox(sentiment,caption = Twitter.Teams[21,2], icon = "fa-twitter",color = "#9DC2EA")
+```
+
+### Philadelphia Union
+
+```{r}
+sentiment <- round(Twitter.Teams[22,3],2)
+valueBox(sentiment,caption = Twitter.Teams[22,2], icon = "fa-twitter",color = "#B1872D")
+```
 
 Row {.tabset .tabset-fade}
 ------------------------------------------
@@ -148,7 +331,6 @@ Row {.tabset .tabset-fade}
 ```{r}
 Data %>% filter(Season == "Current") %>% group_by(Team,Against) %>% summarise(Goals = sum(Goals)) %>% ggplot(aes(Team, Against)) + geom_tile(aes(fill = Goals),width = 0.9, height = 0.9) + geom_text(aes(label = Goals), colour = "White") + theme_tufte(base_size = 9)  + labs(x = "Goals Scored", y = "Goals Allowed")  + scale_y_discrete(expand = c(0, 0)) +  scale_fill_gradient(low = "Blue",high = "Orange") + theme(legend.position="none",axis.text.x = element_text(angle = 90, hjust = 1)) 
 ```
-
 
 ### Team {.no-mobile}
 
