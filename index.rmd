@@ -3,7 +3,6 @@ title: "Fantasy MLS Dashboard"
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
-  
 ---
 
 ```{r setup, include=FALSE}
@@ -71,7 +70,31 @@ Player <- Data %>% filter(Season == "Current") %>% ungroup() %>% group_by(Name) 
 Player.Probabilities <- Data %>% filter(Season == "Current") %>% group_by(Name) %>% arrange(Game) %>% summarise_all(funs(last)) %>% select(Name,Team, Position, pred.score, pred.clean, pred.assist, pred.Save.3, Pred.points)%>% mutate_if(is.numeric,round, digits = 2)
 ```
 
-Best Team
+
+Home {data-icon="fa-home"}
+=========================================
+
+Row
+-----------------------------------------
+
+**Welcome to the Fantasy MLS Dashboard built by Lee W Mathews** updated:`r Sys.Date()`
+
+Row
+-----------------------------------------
+
+You are welcome to check out the [Best Team] fantasy lineups, investigate historical stats on your favorite players [16/17 Season](Season 16/17) or [15/16 Season](Season 15/16) or read through my [most recent analysis](Additional Materials, Ongoing Analysis, and the like)
+
+Row {data-height=100,data-width=100}
+-----------------------------------------
+
+![](Kasper.jpg)
+![](Highline.jpg)
+
+![](Gloves.jpg)
+
+
+
+Best Team {data-icon="fa-futbol-o"}
 ==========================================
 
 
@@ -155,7 +178,7 @@ Graph <- Graph2 %>% gather("Model","Value",1:5)
 if(nrow(Graph2) > 4){Graph %>% ggplot(aes(GameWeek,Value,color = Model)) + geom_line() + labs(x = "Week",y = "Cumulative Points") + scale_x_continuous(breaks = seq(1,34,by = 1), expand = c(0,0)) + theme_economist_white() + scale_color_tableau()}else{Graph %>% ggplot(aes(GameWeek,Value,fill = Model)) + geom_bar(stat = "identity", position = "dodge") + labs(x = "Week",y = "Cumulative Points") + scale_x_continuous(breaks = seq(1,34,by = 1), expand = c(0,0)) + theme_economist_white() + scale_fill_tableau()}
 ```
 
-Teams
+Teams {data-icon="fa-puzzle-piece"}
 ==========================================
 
 Row {data-height=100}
@@ -351,7 +374,7 @@ datatable(Player.Probabilities)
 ```
 
 
-Season 16/17
+Season 16/17 {data-icon="fa-square"}
 ==========================================
 
 Row {.tabset .tabset-fade}
@@ -405,7 +428,7 @@ Data %>% filter(Season == "16/17 Season") %>% ungroup() %>% group_by(Team) %>% s
 Data %>% filter(Season == "16/17 Season") %>% group_by(Name) %>% select(-ID, -Name, -Game, -Minutes, -Against, -Location, - Number, -Position, -scored, -brace, -hattrick, -Save.3, -Save.6, -pred.score, -pred.clean, -pred.assist, -pred.Save.3) %>% summarise_all(funs(average = mean)) %>% datatable()
 ```
 
-Season 15/16
+Season 15/16 {data-icon="fa-circle"}
 ==========================================
 
 Row {.tabset .tabset-fade}
@@ -462,7 +485,7 @@ Data %>% filter(Season == "15/16 Season") %>% group_by(Name) %>% select(-ID, -Na
 ```
 
 
-Season 14/15
+Season 14/15 {data-icon="fa-minus-square"}
 ==========================================
 
 Row {.tabset .tabset-fade}
@@ -516,20 +539,123 @@ Data %>% filter(Season == "14/15 Season") %>% ungroup() %>% group_by(Team) %>% s
 Data %>% filter(Season == "14/15 Season") %>% group_by(Name) %>% select(-ID, -Name, -Game, -Minutes, -Against, -Location, - Number, -Position, -scored, -brace, -hattrick, -Save.3, -Save.6, -pred.score, -pred.clean, -pred.assist, -pred.Save.3) %>% summarise_all(funs(average = mean)) %>% datatable()
 ```
 
-Additional Materials, Ongoing Analysis, and the like
-=====================================================
 
-> Here I will be posting the results of various investigations that I make into the data, when I have time. Presently, the algorithms are only considering the last gameweek and cumulative statistics to determine probabilities. This will change over the coming days. Additionally, I have not yet even begun to develop solid KPIs to be used as variables in analysis so I expect model accuracy to improve modestly as time goes on. At the moment, all models predict just slightly (0.1-1%) better than the naive rule with models considering more history performing minutely better.
+Additional Materials, Ongoing Analysis, and the like {data-icon="fa-plus-square"}
+==========================================================================
+
+Row {.tabset}
+-----------------------------------------------------
+
+### Sunday March 12, 2017
+
+**White Rabbits and Molly Hatchet**
+
+One of the benefits of doing analysis for fun is that you aren't bound by time constraints or meeting the demands of a client; which means that, as an analyst, I could go down any rabbit hole that tickled my fancy on the day.That said, the first white rabbit of this analysis was the using the [Caret](ftp://cran.r-project.org/pub/R/web/packages/caret/caret.pdf) and [CaretEnsemble](https://cran.r-project.org/web/packages/caretEnsemble/caretEnsemble.pdf) packages to develop not only boosted models but meta-boosted models for the prediction of Scoring, Assisting, Clean Sheets, and Saving at least 3 goals. I am almost embarrassed at the amount of time I spent building and setting up these models, but now is the time to decide if using a [Generalized Boosted Model](http://www.saedsayad.com/docs/gbm2.pdf) to ensemble boosted Logistic, K Nearest Neighbors, and Neural Network models is any better than a *"simple"* boosted neural network. The time difference between the two scripts is roughly 14 hours of processing, so identifying whether running these complex models is providing enough additional information could save my poor desktop a lot of stress.  
+  
+So first things first, is the ensemble of ensembles better than a simple boosted neural net? If so, by how much? Note the naive rules for each:  
+* Score - `r round(1 - table(Starter$scored)[2]/table(Starter$scored)[1],3)`
+* Assist - `r round(1 - table(Starter$assist)[2]/table(Starter$assist)[1],3)`
+* Clean - `r round(1 - table(Starter$Clean.sheet)[2]/table(Starter$Clean.sheet)[1],3)`
+* Save 3 - `r round(1 - table(Starter$Save.3)[2]/table(Starter$Save.3)[1],3)`
 
 ```{r}
-#timer <- read.csv(paste(set.local,"timer.csv", sep = ""))
+Quick <- Starter %>% select(Name,Game ,scored, assist, Clean.sheet, Save.3, L1Qscore, L1Qassist, L1Qclean, L1QS3, L2Qscore, L2Qassist, L2Qclean, L2QS3,
+                            L3Qscore, L3Qassist, L3Qclean, L3QS3, L4Qscore, L4Qassist, L4Qclean, L4QS3, L5Qscore, L5Qassist, L5Qclean, L5QS3) %>% 
+                    group_by(Name) %>% arrange(Game) %>% mutate_at(7:26,lag)
+Full <- Starter %>% select(Name,Game ,scored, assist, Clean.sheet, Save.3, L1score, L1assist, L1clean, L1S3, L2score, L2assist, L2clean, L2S3,
+                            L3score, L3assist, L3clean, L3S3, L4score, L4assist, L4clean, L4S3, L5score, L5assist, L5clean, L5S3) %>% 
+                    group_by(Name) %>% arrange(Game) %>% mutate_at(7:26,lag)
+accurator <- function(x,y){
+  cutrate <- seq(0,1,by=0.01)
+  acc <- 0
+  cut <- 0
+  for(i in 1:101){
+  y.pred <- ifelse(y > cutrate[i],1,0)
+  newacc <- sum(diag(table(x,y.pred)))/sum(table(x,y.pred))
+  if(newacc > acc){
+    cut <- cutrate[i]
+    acc <- newacc
+    }
+  }
+  return(acc)
+}
+Qsum <- Quick %>% ungroup() %>% select(contains("score")) %>% summarise_all(accurator, x = Quick$scored)
+Qassist <- Quick %>% ungroup() %>% select(contains("assist")) %>% summarise_all(accurator, x = Quick$assist)
+Qclean <- Quick %>% ungroup() %>% select(contains("clean")) %>% summarise_all(accurator, x = Quick$Clean.sheet)
+QS3 <- Quick %>% ungroup() %>% select(contains("S3")) %>% summarise_all(accurator, x = Quick$Save.3)
+Q <- cbind(Qsum,Qassist,Qclean,QS3) %>% select(-scored, -assist, -Clean.sheet) %>%  gather("Quick","QAccuracy")
+Fsum <- Full %>% ungroup() %>% select(contains("score")) %>% summarise_all(accurator, x = Full$scored)
+Fassist <- Full %>% ungroup() %>% select(contains("assist")) %>% summarise_all(accurator, x = Full$assist)
+Fclean <- Full %>% ungroup() %>% select(contains("clean")) %>% summarise_all(accurator, x = Full$Clean.sheet)
+FS3 <- Full %>% ungroup() %>% select(contains("S3")) %>% summarise_all(accurator, x = Full$Save.3)
+Fl <- cbind(Fsum,Fassist,Fclean,FS3) %>% select(-scored, -assist, -Clean.sheet) %>%  gather("Full","FAccuracy")
 ```
 
-About the Author
+
+```{r}
+cbind(Q,Fl) %>% mutate(Diff = QAccuracy - FAccuracy) %>% knitr::kable()
+```
+  
+  
+As we can see, there is little difference to be found between the two methods, except when looking at predictions of Saves. However, it does appear that prediction of both score and save 3 appear insignificant as they do not out perform the naive rule. The problem with the naive rule is that it gives you the assumption that nobody ever scores or saves more than 3 goals in a game. Furthermore, these models contain lag variables which reduce the total size of the data set which would, in this instance, change the naive rule, but I digress. Regardless of that, with the naive rule you can't just say "Ah, well I can't predict better than random so I'll just pick random midfielders and goalkeepers" unless you would like to be left behind in fantasy. Because there is more to gain in predicting who will score/save (or on the other hand, a cost to selecting the wrong player) we might want to look at a different metric to judge these models on. What I would use for this model is precision (or positive predictive value) such that of the players it predicts positively (score, assist, clean sheet, save 3) a large percentage actually will score, assist, etc. below I have done the same as I did with accuracy above.   
+  
+```{r}
+  truepozerator <- function(x,y){
+  cutrate <- seq(0,1,by=0.01)
+  acc <- 0
+  cut <- 0
+  for(i in 1:101){
+  y.pred <- ifelse(y > cutrate[i],1,0)
+  
+  if(ncol(table(x,y.pred)) > 1){
+  newacc <- table(x,y.pred)[2,2]/sum(table(x,y.pred)[,2])
+  if(newacc > acc){
+    cut <- cutrate[i]
+    acc <- newacc
+    }
+  }
+  }
+
+  return(acc)
+}
+Qsum <- Quick %>% ungroup() %>% select(contains("score")) %>% summarise_all(truepozerator, x = Quick$scored)
+Qassist <- Quick %>% ungroup() %>% select(contains("assist")) %>% summarise_all(truepozerator, x = Quick$assist)
+Qclean <- Quick %>% ungroup() %>% select(contains("clean")) %>% summarise_all(truepozerator, x = Quick$Clean.sheet)
+QS3 <- Quick %>% ungroup() %>% select(contains("S3")) %>% summarise_all(truepozerator, x = Quick$Save.3)
+Q <- cbind(Qsum,Qassist,Qclean,QS3) %>% select(-scored, -assist, -Clean.sheet) %>%  gather("Quick","QPrecision")
+Fsum <- Full %>% ungroup() %>% select(contains("score")) %>% summarise_all(truepozerator, x = Full$scored)
+Fassist <- Full %>% ungroup() %>% select(contains("assist")) %>% summarise_all(truepozerator, x = Full$assist)
+Fclean <- Full %>% ungroup() %>% select(contains("clean")) %>% summarise_all(truepozerator, x = Full$Clean.sheet)
+FS3 <- Full %>% ungroup() %>% select(contains("S3")) %>% summarise_all(truepozerator, x = Full$Save.3)
+Fl <- cbind(Fsum,Fassist,Fclean,FS3) %>% select(-scored, -assist, -Clean.sheet) %>%  gather("Full","FPrecision")
+```
+
+
+```{r}
+cbind(Q,Fl) %>% mutate(Diff = QPrecision - FPrecision) %>% knitr::kable()
+```
+  
+Wow. First, with roughly the same accuracy as the naive rule we can get great postive predictive value, which is excellent. Second, it looks like the more complex model is way better at precision so I should definitely keep it around.  
+  
+  
+Alas, I was flirtin with disaster. Tune in next week, when I go through and analyze the potential use of Twitter sentiment to determine player/team performance.
+
+Cheers,  
+Lee W Mathews
+
+
+
+About the Author {data-icon="fa-question"}
 =====================================================
 
-Lee W Mathews is an Alexandria and Baton Rouge native of Louisiana. While in Alexandria he attended Our Lady of Prompt Succor school and Holy Savior Menard High School. He then moved down to Baton Rouge and earned two degrees from Louisiana State University. His undergraduate degree is in Biology; his favorite subjects the studies Physiology and Immunology. Lee changed directions for graduate school and attained a Master's in Analytics. He now works as an Analytical Consultant at Cognizant.
+Row
+-----------------------------------------------------
 
-> The information provided here is my own. I make no claim to its efficacy, accuracy, objectivity, or root in reality. Whatever you do with these pages is on you; I stake none of my professional ability on this site. It is a hobby, and that alone.
+*Lee W Mathews is an Alexandria and Baton Rouge native of Louisiana. While in Alexandria he attended Our Lady of Prompt Succor school and Holy Savior Menard High School. He then moved down to Baton Rouge and earned two degrees from Louisiana State University. His undergraduate degree is in Biology; his favorite subjects: the studies Physiology and Immunology. Lee changed directions for graduate school and attained a Master's in Analytics. He now works as an Analytical Consultant at Cognizant.*
 
-> Viva Christo Rey!
+Row
+----------------------------------------------------
+
+The information provided here is my own. It is a hobby, and that alone.
+
+Viva Christo Rey!
