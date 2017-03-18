@@ -15,6 +15,7 @@ require("ggthemes")
 require("knitr")
 require(DT)
 Starter <- read.csv(paste(set.local,"DataPredicted.csv",sep = ""), stringsAsFactors = FALSE)
+Starter <- read.csv(paste(set.local,"TwitPlayers.csv",sep = "")) %>% select(-ID)%>% mutate(Season = "Current") %>% left_join(Starter, .)
 Twitter.Teams <- read.csv(paste(set.local,"TwitTeams.csv",sep = ""))
 Data <- Starter %>% select(Number:PP90, Score, Word)
 Predictions <- Starter %>% select(ID,Game,starts_with("L"),-Location)
@@ -192,78 +193,78 @@ Row
 ### Portland Timbers
 
 ```{r}
-sentiment <- round(Twitter.Teams[1,3],2)
-valueBox(sentiment,caption = Twitter.Teams[1,2], icon = "fa-twitter",color = "#004812")
+sentiment <- round(Twitter.Teams[1,2],2)
+valueBox(sentiment,caption = Twitter.Teams[1,1], icon = "fa-twitter",color = "#004812")
 ```
 
 ### Minnesota United FC
 
 ```{r}
-sentiment <- round(Twitter.Teams[2,3],2)
-valueBox(sentiment,caption = Twitter.Teams[2,2], icon = "fa-twitter",color = "#8BB8E8")
+sentiment <- round(Twitter.Teams[2,2],2)
+valueBox(sentiment,caption = Twitter.Teams[2,1], icon = "fa-twitter",color = "#8BB8E8")
 ```
 
 ### Colorado Rapids
 
 ```{r}
-sentiment <- round(Twitter.Teams[3,3],2)
-valueBox(sentiment,caption = Twitter.Teams[3,2], icon = "fa-twitter",color = "#862633")
+sentiment <- round(Twitter.Teams[3,2],2)
+valueBox(sentiment,caption = Twitter.Teams[3,1], icon = "fa-twitter",color = "#862633")
 ```
 
 ### New England Revolution
 
 ```{r}
-sentiment <- round(Twitter.Teams[4,3],2)
-valueBox(sentiment,caption = Twitter.Teams[4,2], icon = "fa-twitter",color = "#C63323")
+sentiment <- round(Twitter.Teams[4,2],2)
+valueBox(sentiment,caption = Twitter.Teams[4,1], icon = "fa-twitter",color = "#C63323")
 ```
 
 ### Columbus Crew SC
 
 ```{r}
-sentiment <- round(Twitter.Teams[5,3],2)
-valueBox(sentiment,caption = Twitter.Teams[5,2], icon = "fa-twitter",color = "#FFF200")
+sentiment <- round(Twitter.Teams[5,2],2)
+valueBox(sentiment,caption = Twitter.Teams[5,1], icon = "fa-twitter",color = "#FFF200")
 ```
 
 ### Chicago Fire
 
 ```{r}
-sentiment <- round(Twitter.Teams[6,3],2)
-valueBox(sentiment,caption = Twitter.Teams[6,2], icon = "fa-twitter",color = "#102141")
+sentiment <- round(Twitter.Teams[6,2],2)
+valueBox(sentiment,caption = Twitter.Teams[6,1], icon = "fa-twitter",color = "#102141")
 ```
 
 ### D.C. United
 
 ```{r}
-sentiment <- round(Twitter.Teams[7,3],2)
-valueBox(sentiment,caption = Twitter.Teams[7,2], icon = "fa-twitter",color = "#EF3E42")
+sentiment <- round(Twitter.Teams[7,2],2)
+valueBox(sentiment,caption = Twitter.Teams[7,1], icon = "fa-twitter",color = "#EF3E42")
 ```
 
 ### Sporting Kansas City
 
 ```{r}
-sentiment <- round(Twitter.Teams[8,3],2)
-valueBox(sentiment,caption = Twitter.Teams[8,2], icon = "fa-twitter",color = "#93B1D7")
+sentiment <- round(Twitter.Teams[8,2],2)
+valueBox(sentiment,caption = Twitter.Teams[8,1], icon = "fa-twitter",color = "#93B1D7")
 ```
 
 ### Houston Dynamo
 
 ```{r}
-sentiment <- round(Twitter.Teams[9,3],2)
-valueBox(sentiment,caption = Twitter.Teams[9,2], icon = "fa-twitter",color = "#F68712")
+sentiment <- round(Twitter.Teams[9,2],2)
+valueBox(sentiment,caption = Twitter.Teams[9,1], icon = "fa-twitter",color = "#F68712")
 ```
 
 ### Seattle Sounders FC
 
 ```{r}
-sentiment <- round(Twitter.Teams[10,3],2)
-valueBox(sentiment,caption = Twitter.Teams[10,2], icon = "fa-twitter",color = "#5D9732")
+sentiment <- round(Twitter.Teams[10,2],2)
+valueBox(sentiment,caption = Twitter.Teams[10,1], icon = "fa-twitter",color = "#5D9732")
 ```
 
 ### LA Galaxy
 
 ```{r}
-sentiment <- round(Twitter.Teams[11,3],2)
-valueBox(sentiment,caption = Twitter.Teams[11,2], icon = "fa-twitter",color = "#00245D")
+sentiment <- round(Twitter.Teams[11,2],2)
+valueBox(sentiment,caption = Twitter.Teams[11,1], icon = "fa-twitter",color = "#00245D")
 ```
 
 Row
@@ -272,78 +273,78 @@ Row
 ### FC Dallas
 
 ```{r}
-sentiment <- round(Twitter.Teams[12,3],2)
-valueBox(sentiment,caption = Twitter.Teams[12,2], icon = "fa-twitter",color = "#BF0D3E")
+sentiment <- round(Twitter.Teams[12,2],2)
+valueBox(sentiment,caption = Twitter.Teams[12,1], icon = "fa-twitter",color = "#BF0D3E")
 ```
 
 ### Real Salt Lake
 
 ```{r}
-sentiment <- round(Twitter.Teams[13,3],2)
-valueBox(sentiment,caption = Twitter.Teams[13,2], icon = "fa-twitter",color = "#B30838")
+sentiment <- round(Twitter.Teams[13,2],2)
+valueBox(sentiment,caption = Twitter.Teams[13,1], icon = "fa-twitter",color = "#B30838")
 ```
 
 ### Toronto FC
 
 ```{r}
-sentiment <- round(Twitter.Teams[14,3],2)
-valueBox(sentiment,caption = Twitter.Teams[14,2], icon = "fa-twitter",color = "#E31937")
+sentiment <- round(Twitter.Teams[14,2],2)
+valueBox(sentiment,caption = Twitter.Teams[14,1], icon = "fa-twitter",color = "#E31937")
 ```
 
 ### San Jose Earthquakes
 
 ```{r}
-sentiment <- round(Twitter.Teams[15,3],2)
-valueBox(sentiment,caption = Twitter.Teams[15,2], icon = "fa-twitter",color = "#231F20")
+sentiment <- round(Twitter.Teams[15,2],2)
+valueBox(sentiment,caption = Twitter.Teams[15,1], icon = "fa-twitter",color = "#231F20")
 ```
 
 ### Montreal Impact
 
 ```{r}
-sentiment <- round(Twitter.Teams[16,3],2)
-valueBox(sentiment,caption = Twitter.Teams[16,2], icon = "fa-twitter",color = "#00529B")
+sentiment <- round(Twitter.Teams[16,2],2)
+valueBox(sentiment,caption = Twitter.Teams[16,1], icon = "fa-twitter",color = "#00529B")
 ```
 
 ### Atlanta United FC
 
 ```{r}
-sentiment <- round(Twitter.Teams[17,3],2)
-valueBox(sentiment,caption = Twitter.Teams[17,2], icon = "fa-twitter",color = "#9D2235")
+sentiment <- round(Twitter.Teams[17,2],2)
+valueBox(sentiment,caption = Twitter.Teams[17,1], icon = "fa-twitter",color = "#9D2235")
 ```
 
 ### New York Red Bulls
 
 ```{r}
-sentiment <- round(Twitter.Teams[18,3],2)
-valueBox(sentiment,caption = Twitter.Teams[18,2], icon = "fa-twitter",color = "#ED1E36")
+sentiment <- round(Twitter.Teams[18,2],2)
+valueBox(sentiment,caption = Twitter.Teams[18,1], icon = "fa-twitter",color = "#ED1E36")
 ```
 
 ### Orlando City SC
 
 ```{r}
-sentiment <- round(Twitter.Teams[19,3],2)
-valueBox(sentiment,caption = Twitter.Teams[19,2], icon = "fa-twitter",color = "#612B9B")
+sentiment <- round(Twitter.Teams[19,2],2)
+valueBox(sentiment,caption = Twitter.Teams[19,1], icon = "fa-twitter",color = "#612B9B")
 ```
 
 ### New York City FC
 
 ```{r}
-sentiment <- round(Twitter.Teams[20,3],2)
-valueBox(sentiment,caption = Twitter.Teams[9,2], icon = "fa-twitter",color = "#0F1D41")
+sentiment <- round(Twitter.Teams[20,2],2)
+valueBox(sentiment,caption = Twitter.Teams[9,1], icon = "fa-twitter",color = "#0F1D41")
 ```
 
 ### Vancouver Whitecaps FC
 
 ```{r}
-sentiment <- round(Twitter.Teams[21,3],2)
-valueBox(sentiment,caption = Twitter.Teams[21,2], icon = "fa-twitter",color = "#9DC2EA")
+sentiment <- round(Twitter.Teams[21,2],2)
+valueBox(sentiment,caption = Twitter.Teams[21,1], icon = "fa-twitter",color = "#9DC2EA")
 ```
 
 ### Philadelphia Union
 
 ```{r}
-sentiment <- round(Twitter.Teams[22,3],2)
-valueBox(sentiment,caption = Twitter.Teams[22,2], icon = "fa-twitter",color = "#B1872D")
+sentiment <- round(Twitter.Teams[22,2],2)
+valueBox(sentiment,caption = Twitter.Teams[22,1], icon = "fa-twitter",color = "#B1872D")
 ```
 
 Row {.tabset .tabset-fade}
