@@ -83,7 +83,18 @@ Row
 Row
 -----------------------------------------
 
-You are welcome to check out the [Best Team] fantasy lineups, investigate historical stats on your favorite players [16/17 Season](Season 16/17) or [15/16 Season](Season 15/16) or read through my [most recent analysis](Additional Materials, Ongoing Analysis, and the like)
+Somehow in my infinite wisdom I managed to forget to account for weeks like this where only 6 teams play. Unfortunately, I haven't had enough time to completely recitfy this issue. So here are the predicted best players for this fantasy week
+
+```{r}
+Pred_Keepersalt <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "G", Season == "Current", Team %in% c("New England Revolution","Minnesota United FC","New York Red Bulls","Real Salt Lake","Columbus Crew SC","Portland Timbers")) %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>% arrange(Pred.points) %>%  top_n(2,Pred.points)
+Pred_Defendersalt <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "D", Season == "Current", Team %in% c("New England Revolution","Minnesota United FC","New York Red Bulls","Real Salt Lake","Columbus Crew SC","Portland Timbers"))  %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>% arrange(Pred.points) %>%  top_n(5,Pred.points)
+Pred_Midfieldersalt <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "M", Season == "Current", Team %in% c("New England Revolution","Minnesota United FC","New York Red Bulls","Real Salt Lake","Columbus Crew SC","Portland Timbers"))  %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>% arrange(Pred.points) %>%  top_n(5,Pred.points)
+Pred_Strikersalt <- Data %>% group_by(Name) %>% arrange(GameWeek) %>% summarise_all(funs(last)) %>% filter(Position == "F", Season == "Current", Team %in% c("New England Revolution","Minnesota United FC","New York Red Bulls","Real Salt Lake","Columbus Crew SC","Portland Timbers"))  %>%  ungroup() %>% mutate(Pred.points = round(Pred.points,2)) %>% arrange(Pred.points) %>%  top_n(3,Pred.points)
+
+Predalt <- rbind(Pred_Keepersalt,Pred_Defendersalt,Pred_Midfieldersalt,Pred_Strikersalt)
+
+Predalt %>% ggplot(aes(Name,Pred.points,fill = Position)) + geom_bar(stat = "identity") + theme_tufte() + scale_fill_tableau()+ coord_flip()
+```
 
 Row {data-height=100,data-width=100}
 -----------------------------------------
